@@ -22,13 +22,14 @@ var (
 	externalPort string	// external port if using a reverse proxy
 	templatePath string	// where templates are held
 	pathToStaticFiles string // where static assets are stored
+	workingDirectory string // workingDirectory is the result of os.Getwd() or "." if that fails.
 )
 
 func streamFile(filename string) error {
 	cmd := exec.Command(ffmpegPath, "-i", filename, "")
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Errorf("error while running %q: %q \n", ffmpegPath, err)
+		log.Printf("error while running %q: %q \n", ffmpegPath, err)
 		return err
 	}
 	log.Printf("✅ %s\n", stdoutStderr)
@@ -51,6 +52,9 @@ func main() {
 		os.Exit(0)
 	}
 
+	// setup default logger
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	/**
 	 * Starting backend web server using Gin Gonic.
 	 */
@@ -59,6 +63,11 @@ func main() {
 	router.SetTrustedProxies(nil)	// as per https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies (gwyneth 20220111).
 	router.TrustedPlatform = gin.PlatformCloudflare	// we're running behind Cloudflare CDN
 
+	var err error	// needed for scope issues
+	if workingDirectory, err = os.Getwd(); err != nil {
+		workingDirectory = "."	// if os.Getwd() fails, use local directory, maybe it works (gwyneth 2022011.
+		// no need to panic, this error is 'fixed'!
+	}
 	// Figure out where the templates are: deal with empty path.
 	if templatePath == "" {
 		templatePath = filepath.Join(workingDirectory, "/templates")
