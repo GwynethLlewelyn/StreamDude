@@ -41,8 +41,7 @@ package-lock.json
 .prettierrc.json
 
 # Things from Go to avoid
-executor
-inf2ffmpeg
+streamdude
 
 # ---> Go
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
