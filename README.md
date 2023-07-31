@@ -1,3 +1,4 @@
+![StreamDude Logo](assets/logos/streamdude-logo-128x128.png)
 # StreamDude
 
 A work in progress simple playlist manager to remotely send files to a streaming server.
@@ -17,3 +18,11 @@ The oldest tool I know that does just that is Apple's own Darwin Streaming Serve
 There are a few complex ones out there, some even for free, but installing them is a pain.
 
 Thus, StreamDude.
+
+## No, really?
+
+Well, no, I'm lying.
+
+Actually what I *really* need **right now** is a simple way to get scripts from inside the [Second Life®](https://secondlife.com) and [OpenSimulator](http://opensimulator.org) to be able to remotely select what streams to play. I could do it with a single Python command line argument (no need to run or compile anything or write any code whatsoever). But what would be the fun in that?
+
+Instead, I'm sort of joining three separate projects into one.
