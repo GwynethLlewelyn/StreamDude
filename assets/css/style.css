@@ -6,7 +6,7 @@
 }
 
 /* adds cute scrollbar on a fixed-height window */
-.plic-overflow-scroll {
+.sd-overflow-scroll {
   height: 70vh;
   overflow-y: scroll;
 }
