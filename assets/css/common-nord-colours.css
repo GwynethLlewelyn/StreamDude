@@ -26,9 +26,8 @@
   --breakpoint-lg: 992px;
   --breakpoint-xl: 1200px;
   /* Default font used to be Alegreya, although Google's Rubik comes pretty close!
-   * For the LOCUS project(s), the official font is Brandon Text (gwyneth 20220326)
    */
-  --font-family-sans-serif: "Brandon Text", "BrandonText-Regular", Rubik, -apple-system, BlinkMacSystemFont,
+  --font-family-sans-serif: "Work Sans", Rubik, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-family-monospace: "FiraCode Nerd Font Mono", "Fira Code", SFMono-Regular, Menlo, Monaco, Consolas,
