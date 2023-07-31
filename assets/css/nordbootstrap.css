@@ -13,35 +13,6 @@ Changed by Gwyneth Llewelyn (March 2022)
 
 @import 'common-nord-colours.css';
 
-/* Our fonts for the LOCUS project */
-@font-face {
-  src: url('../fonts/BrandonText-Regular.woff2') format("woff2");
-  font-family: "BrandonText-Regular";
-  font-style: normal;
-  font-weight: 400;
-}
-
-@font-face {
-  src: url('../fonts/BrandonText-RegularItalic.woff2') format("woff2");
-  font-family: "BrandonText-RegularItalic";
-  font-style: italic;
-  font-weight: 400;
-}
-
-@font-face {
-  src: url('../fonts/BrandonText-Medium.woff2') format("woff2");
-  font-family: "BrandonText-Medium";
-  font-style: normal;
-  font-weight: 700;
-}
-
-@font-face {
-  src: url('../fonts/BrandonText-MediumItalic.woff2') format("woff2");
-  font-family: "BrandonText-MediumItalic";
-  font-style: italic;
-  font-weight: 700;
-}
-
 *,
 *::before,
 *::after {
@@ -148,21 +119,22 @@ blockquote {
 
 b,
 strong {
-  font-family: "Brandon Text Medium", "BrandonText-Medium", ui-sans-serif, sans-serif;
+  font-family: "Work Sans", ui-sans-serif, sans-serif;
   // font-weight: bolder;
   font-weight: 700;
 }
 
 i,
 em {
-  font-family: "Brandon Text Regular Italic", "BrandonText-RegularItalic", ui-sans-serif, sans-serif;
+  font-family: "Work Sans", ui-sans-serif, sans-serif;
   // font-weight: bolder;
   font-style: italic;
 }
 
 b i, i b,
 strong em, em strong {
-  font-family: "Brandon Text Medium Italic", "BrandonText-MediumItalic", ui-sans-serif, sans-serif;
+  font-family: "Work Sans", ui-sans-serif, sans-serif;
+  font-weight: 700;
   font-style: italic;
 }
 
