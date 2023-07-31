@@ -16,14 +16,15 @@
 		<title>{{- if .Title -}}{{- .Title -}}{{- else -}}{{- .titleCommon -}}{{- end -}}{{- if .description -}} | {{- .description -}}{{- end -}}</title>
 		<meta http-equiv="x-dns-prefetch-control" content="on" />
 		<link rel="preconnect" href="https://cdnjs.cloudflare.com" />
-		{{- if .hasCode -}}
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+		{{- if .hasCode -}}
 		<link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet" />
 		{{- end -}}
 		<!-- Note: we load our own fonts! -->
 		<!--<link href="https://fonts.googleapis.com/css2?family=Alegreya&display=swap" rel="stylesheet" />-->
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css" integrity="sha512-Oy+sz5W86PK0ZIkawrG0iv7XwWhYecM3exvUtMKNJMekGFJtVAhibhRPTpmyTj8+lJCkmWfnpxKgT2OopquBHA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+		<link rel="stylesheet" href="pli1.8.1/font/bootstrap-icons.min.css" integrity="sha512-Oy+sz5W86PK0ZIkawrG0iv7XwWhYecM3exvUtMKNJMekGFJtVAhibhRPTpmyTj8+lJCkmWfnpxKgT2OopquBHA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 		{{- if .hasCode -}}
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/styles/nord.min.css" integrity="sha512-U/cZqAAOThvb4J9UCt/DWkkjoJWHXvutFDS/nZmZlirci2ZMuH6qFokOQDuuKgE7pXD+FmhDNH2jT43x0GreCQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 		{{- end -}}
@@ -62,7 +63,7 @@
 		<!-- Nord theme comes after the above, so that it might overwrite things in case of need -->
 		<link rel="stylesheet" href="{{- .URLPathPrefix -}}/assets/css/nordbootstrap.css?cache-buster={{- .cacheBuster -}}" />
 		<!-- our own CSS at the end, so that everything from CodeMirror can be overridden (gwyneth 20220327) -->
-		<link rel="stylesheet" href="{{- .URLPathPrefix -}}/assets/css/plic.css?cache-buster={{- .cacheBuster -}}" />
+		<link rel="stylesheet" href="{{- .URLPathPrefix -}}/assets/css/style.css?cache-buster={{- .cacheBuster -}}" />
 	</head>
 	<body id="page-top">
 		<!-- this allows us to get URLPathPrefix from JS, if needed later -->
@@ -72,7 +73,7 @@
 			Used to have 'fixed-top' but this seems to put everything too transparent for my taste... -->
 			<nav class="navbar navbar-expand-md navbar-light bg-secondary text-primary fixed-top border-bottom">
 				<a class="navbar-brand" href="{{- .URLPathPrefix -}}/admin/home">
-					<img src="{{- .URLPathPrefix -}}/assets/logos/PLIC%20Logo.svg" class="svg-logo bg-white rounded shadow-lg" alt="PLIC Logo - Home" title="PLIC Logo - Home">
+					<img src="{{- .URLPathPrefix -}}/assets/logos/streamdude-logo-128x128.png" class="svg-logo bg-white rounded shadow-lg" alt="StreamDude Logo - Home" title="StreamDude Logo - Home">
 				</a>
 				<!-- Toggler/collapsible Button -->
 				<button class="navbar-toggler navbar-light" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">

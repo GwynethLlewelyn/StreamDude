@@ -42,6 +42,7 @@ package-lock.json
 
 # Things from Go to avoid
 streamdude
+StreamDude
 
 # ---> Go
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
