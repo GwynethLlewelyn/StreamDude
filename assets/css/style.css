@@ -1,0 +1,37 @@
+@import 'common-nord-colours.css';
+
+/* Logo on the header/navigation menu */
+.svg-logo {
+	height: 3rem;
+}
+
+/* adds cute scrollbar on a fixed-height window */
+.plic-overflow-scroll {
+  height: 70vh;
+  overflow-y: scroll;
+}
+
+/* required for CodeMirror, which inherits the wrong size from elsewhere */
+.smaller-pre-font {
+  font-family: var(--font-family-monospace);
+  font-size: 87.5%;
+}
+
+/* used for highlight.js to pick the correct tab size */
+.tab {
+  tab-size: 4;
+}
+
+/* Deal with CodeMirror's annoying idea of the size it should have
+   See https://codemirror.net/demo/resize.html
+*/
+.CodeMirror {
+  height: 70vh; /* same as the overflow scroll class */
+}
+
+/* Override agGrid font & colour */
+.ag-theme-alpine-dark {
+  font-family: var(--font-family-sans-serif);
+  color: var(--white);
+  background-color: var(--gray-dark);
+}
