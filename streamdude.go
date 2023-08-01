@@ -73,7 +73,6 @@ func main() {
 		os.Exit(0)
 	}
 
-
 	// setup a single instance of the validator service.
 	validate = validator.New()
 
@@ -96,7 +95,8 @@ func main() {
 	if (debug) {
 		logme.SetLevel(logrus.DebugLevel)
 	}
-	// log.Debugf("Output descriptor: %+v\n", log.Out)
+	// logme.Debugf("Output descriptor: %+v\n", logme.Out)
+	logme.Debugf("Debug level set to %q\n", logme.GetLevel().String())
 
 	// respect CLICOLOR_FORCE and NO_COLOR in Gin (logrus is already compliant)
 	// Figure out if we're running in a terminal, and, if so, apply all the relevant commands
@@ -119,6 +119,8 @@ func main() {
 	if temp := os.Getenv("LAL_MASTER_KEY"); temp != "" {
 		lalMasterKey = temp
 	}
+	logme.Debugf("lal key (obfuscated): %q\n", obfuscate(lalMasterKey))
+
 	// Override streamer, if env exists.
 	if temp := os.Getenv("STREAMER_URL"); temp != "" {
 		streamerURL = temp
@@ -127,6 +129,7 @@ func main() {
 	if err := validate.Var(streamerURL, "required,url"); err != nil {
 		logme.Fatalf("invalid streamer URL: %q, aborting\n", streamerURL)
 	}
+	logme.Infof("remote streamer URL set to: %q\n", streamerURL)
 
 	// Setup templating system.
 
@@ -158,12 +161,18 @@ func main() {
 	router.RedirectFixedPath = true
 
 	// Ping handler (who knows, it might be useful in some contexts... such as Let's Encrypt certificates
-	router.GET(path.Join(urlPathPrefix, "/ping"), func(c *gin.Context) {
+	router.Any(path.Join(urlPathPrefix, "/ping"), func(c *gin.Context) {
 		payload := "pong back to " + c.RemoteIP()
+		logme.Debugln("This request had Content-Type set to: ", c.ContentType(), " and accepts ", c.GetHeader("Accept"))
 
-		switch c.ContentType() {
+		contentType := c.GetHeader("Accept")
+		if contentType == "" {
+			contentType = c.ContentType()
+		}
+
+		switch contentType {
 			case "application/json":
-				c.JSON(http.StatusOK, gin.H{"status":"ok", "message": payload})
+				c.JSON(http.StatusOK, gin.H{"status": "ok", "message": payload})
 			case "text/html":
 				c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
 					"Title"			: http.StatusMethodNotAllowed,
@@ -173,7 +182,7 @@ func main() {
 			case "text/xml":
 			case "application/soap+xml":
 			case "application/xml":
-				c.XML(http.StatusOK, gin.H{"status":"ok", "message": payload})
+				c.XML(http.StatusOK, gin.H{"status": "ok", "message": payload})
 			default:
 				c.String(http.StatusOK, payload)
 		}
@@ -190,7 +199,12 @@ func main() {
 	router.NoRoute(func(c *gin.Context) {
 		errorMessage := "Command " + c.Request.URL.Path + " not found."
 
-		switch c.ContentType() {
+		contentType := c.GetHeader("Accept")
+		if contentType == "" {
+			contentType = c.ContentType()
+		}
+
+		switch contentType {
 			case "application/json":
 				c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": errorMessage})
 			case "text/html":
@@ -202,7 +216,7 @@ func main() {
 			case "text/xml":
 			case "application/soap+xml":
 			case "application/xml":
-				c.XML(http.StatusNotFound, gin.H{"status":"error", "message": errorMessage})
+				c.XML(http.StatusNotFound, gin.H{"status": "error", "message": errorMessage})
 			default:
 				c.String(http.StatusNotFound, errorMessage)
 		}
@@ -211,9 +225,14 @@ func main() {
 	router.NoMethod(func(c *gin.Context) {
 		errorMessage := "Method " + c.Request.Method + " not allowed."
 
-		switch c.ContentType() {
+		contentType := c.GetHeader("Accept")
+		if contentType == "" {
+			contentType = c.ContentType()
+		}
+
+		switch contentType {
 			case "application/json":
-				c.JSON(http.StatusMethodNotAllowed, gin.H{"status":"error", "message": errorMessage})
+				c.JSON(http.StatusMethodNotAllowed, gin.H{"status": "error", "message": errorMessage})
 			case "text/html":
 				c.HTML(http.StatusMethodNotAllowed, "generic.tpl", environment(c, gin.H{
 					"Title"			: http.StatusMethodNotAllowed,
@@ -223,12 +242,21 @@ func main() {
 			case "text/xml":
 			case "application/soap+xml":
 			case "application/xml":
-				c.XML(http.StatusMethodNotAllowed, gin.H{"status":"error", "message": errorMessage})
+				c.XML(http.StatusMethodNotAllowed, gin.H{"status": "error", "message": errorMessage})
 			default:
 				c.String(http.StatusMethodNotAllowed, errorMessage)
 		}
 	})
+
+	/*
+	 *  Launch the server (finally) and log an error if it crashes.
+	 */
+
 	// this might require another layer to check for https
 	logme.Fatal(router.Run(host + serverPort))
-
 }
+
+/*
+ * Some special cases
+ */
+

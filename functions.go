@@ -68,35 +68,65 @@ func checkErr(err error) {
 // Auxiliary functions for HTTP handling, adapted to Gin Gonic. (gwyneth 20220328)
 
 // checkErrHTTP returns an error via HTTP and also logs the error.
+//
+// Deprecated: use checkErrReply instead, which formats everything according to the
+// content type of the current request. (gwyneth 20230801)
 func checkErrHTTP(c *gin.Context, httpStatus int, errorMessage string, err error) {
-	if err != nil {
-		c.String(httpStatus, errorMessage, err)
-		pc, file, line, ok := runtime.Caller(1)
-		// logme.Error("(", http.StatusText(httpStatus), ") ", filepath.Base(file), ":", line, ":", pc, ok, " - error:", errorMessage, err)
-		logme.Errorf("HTTP (%s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
-		c.AbortWithError(httpStatus, err)
+	if err != nil {	// save a function call, if there is no error
+		checkErrReply(c, httpStatus, errorMessage, err)
 	}
 }
 
 // checkErrPanicHTTP returns an error via HTTP and logs the error with a panic.
+//
+// Deprecated: use checkErrReply instead, which formats everything according to the
+// content type of the current request, and add a panic to the end. (gwyneth 20230801)
 func checkErrPanicHTTP(c *gin.Context, httpStatus int, errorMessage string, err error) {
 	if err != nil {
-		c.String(httpStatus, errorMessage, err)
-		pc, file, line, ok := runtime.Caller(1)
-		// logme.Panic("(", http.StatusText(httpStatus), ") ", filepath.Base(file), ":", line, ":", pc, ok, " - panic:", errorMessage, err)
-		logme.Panicf("HTTP (%s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
-		c.AbortWithError(httpStatus, err)
+		checkErrReply(c, httpStatus, errorMessage, err)
+		panic(err)
 	}
 }
 
 // Same as checkErrHTTP, but errors are returned.
+//
+// Deprecated: use checkErrReply instead, which formats everything according to the
+// content type of the current request. (gwyneth 20230801)
 func checkErrJSON(c *gin.Context, httpStatus int, errorMessage string, err error) {
 	if err != nil {
-		// theoretically, all JSON API errors are 200 (gwyneth 2022)
-		c.JSON(http.StatusOK, gin.H{"status":"error", "message" : fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
+		checkErrReply(c, httpStatus, errorMessage, err)
+	}
+}
+
+// Universal check for errors and reply using the correct content type.
+func checkErrReply(c *gin.Context, httpStatus int, errorMessage string, err error) {
+	if err != nil {
+		contentType := c.GetHeader("Accept")
+		if contentType == "" {
+			contentType = c.ContentType()
+		}
+
+		switch contentType {
+			case "application/json":
+				c.JSON(httpStatus,
+					gin.H{"status":" error", "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
+			case "text/html":
+				c.HTML(httpStatus, "generic.tpl", environment(c, gin.H{
+					"Title"			: http.StatusMethodNotAllowed,
+					"description"	: http.StatusText(httpStatus),
+					"Text"			: errorMessage,
+				}))
+			case "text/xml":
+			case "application/soap+xml":
+			case "application/xml":
+				c.XML(httpStatus, gin.H{"status": "ok", "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
+			default:
+				c.String(httpStatus, errorMessage)
+		}
+
 		pc, file, line, ok := runtime.Caller(1)
-		// logme.Error("(", http.StatusText(httpStatus), ") ", filepath.Base(file), ":", line, ":", pc, ok, " - error:", errorMessage, err)
-		logme.Printf("(JSON API error) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
+
+		logme.Printf("‹%s› (error %s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", contentType, http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
 		c.AbortWithError(httpStatus, err)
 	}
 }
@@ -255,4 +285,13 @@ func environment(c *gin.Context, env gin.H) gin.H {
 	c.Header("X-Clacks-Overhead", "GNU Terry Pratchett")	// fans will know what this is for (gwyneth 20211115)
 
 	return retMap
+}
+
+// simple string obfuscator.
+func obfuscate(s string) string {
+	slice := "********"
+	if len(s) > 8 {
+		slice += s[len(s)-8:]
+	}
+	return slice
 }

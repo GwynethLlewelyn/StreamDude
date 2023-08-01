@@ -62,7 +62,7 @@ func streamFile(filename string) error {
 
 // checks if we have received a valid JSON token
 func payloadValidation(c *gin.Context, command *Command) {
-	checkErrJSON(c, http.StatusBadRequest, "invalid request, no JSON found",
+	checkErrReply(c, http.StatusBadRequest, "invalid request, no body found",
 		c.ShouldBind(&command))
 
 	logme.Debugf("Command to parse: %#v (should be JSON-ish)\n", command)
@@ -70,10 +70,7 @@ func payloadValidation(c *gin.Context, command *Command) {
 	// do some sanitation
 	// returns nil or ValidationErrors ( []FieldError )
 	if err := validate.Struct(command); err != nil {
-		// this check is only needed when your code could produce
-		// an invalid value for validation such as interface with nil
-		// value most including myself do not usually have code like this.
-		checkErrJSON(c, http.StatusBadRequest, "invalid request; could not validate JSON",
+		checkErrReply(c, http.StatusBadRequest, "invalid request; could not validate body",
 			err)
 	}
 }
@@ -96,7 +93,7 @@ func apiStreamFile(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{ "status": "error", "msg": "empty filename, cannot proceed"})
 	}
 
-	checkErrJSON(c, http.StatusNotFound, fmt.Sprintf("filename %q for streaming not found", command.Filename),
+	checkErrReply(c, http.StatusNotFound, fmt.Sprintf("filename %q for streaming not found", command.Filename),
 		streamFile(command.Filename))
 }
 
@@ -109,7 +106,7 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 
 	pin, err := strconv.Atoi(command.ObjectPIN)
 	logme.Debugf("Got PIN: %#v\n", pin)
-	checkErrJSON(c, http.StatusBadRequest, "invalid request: invalid or empty PIN", err)
+	checkErrReply(c, http.StatusBadRequest, "invalid request: invalid or empty PIN", err)
 	// TODO(gwyneth): obviously, check if this is a valid PIN...
 
 	// generate a random token, to be used for future authentication requests
