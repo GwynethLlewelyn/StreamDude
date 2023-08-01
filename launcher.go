@@ -62,7 +62,7 @@ func streamFile(filename string) error {
 
 // checks if we have received a valid JSON token
 func payloadValidation(c *gin.Context, command *Command) {
-	checkErrReply(c, http.StatusBadRequest, "invalid request, no body found",
+	checkErrReply(c, http.StatusBadRequest, "invalid request, no valid body found",
 		c.ShouldBind(&command))
 
 	logme.Debugf("Command to parse: %#v (should be JSON-ish)\n", command)
