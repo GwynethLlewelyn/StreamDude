@@ -91,6 +91,7 @@ func apiStreamFile(c *gin.Context) {
 
 	if command.Filename == "" {
 		c.JSON(http.StatusBadRequest, gin.H{ "status": "error", "msg": "empty filename, cannot proceed"})
+		return
 	}
 
 	checkErrReply(c, http.StatusNotFound, fmt.Sprintf("filename %q for streaming not found", command.Filename),
