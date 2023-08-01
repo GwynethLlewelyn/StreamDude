@@ -1,5 +1,11 @@
 // StreamDude
-
+//
+// Environment variables used when launching:
+//
+// `LAL_MASTER_KEY` - because it's too dangerous to keep it in code and/or files
+// `STREAMER_URL` - another way to override the streamer URL; may be useful in scripts
+//
+// © 2023 by Gwyneth Llewelyn. All rights reserved.
 package main
 
 import (
@@ -39,6 +45,10 @@ var (
 
 	// Global logger using logrus.
 	logme = logrus.New()
+
+	// Stuff for the lal streaming server
+	streamerURL string		// RTSP streaming URL for lal
+	lalMasterKey string		// too dangerous to show, put into LAL_MASTER_KEY environment
 )
 
 func main() {
@@ -53,6 +63,8 @@ func main() {
 	flag.StringVarP(&urlPathPrefix,	'u', "urlprefix",		"",				"URL path prefix")
 	flag.StringVarP(&lslSignaturePIN, 'l',	"lslpin",		"0000",			"LSL signature PIN")
 	flag.BoolVarP(&debug,			'd', "debug",			false, 			"set debug level (omit for normal logs)")
+	flag.StringVarP(&streamerURL,	'r', "streamer",		"rtsp://127.0.0.1:554/",	"streamer URL")
+	flag.StringVarP(&lalMasterKey,	'k', "masterkey",		"",				"lal server master key")
 
 	flag.Parse()
 
@@ -61,10 +73,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	// setup logrus logger
-//	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	// setup a single instance of the validator service
+	// setup a single instance of the validator service.
 	validate = validator.New()
 
 	/**
@@ -76,6 +86,8 @@ func main() {
 	router.TrustedPlatform = gin.PlatformCloudflare	// we're running behind Cloudflare CDN
 
 	// Configure logrus.
+	//	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	logme.Formatter = new(logrus.TextFormatter)
 	logme.Formatter.(*logrus.TextFormatter).DisableColors = false		// keep colors
 	logme.Formatter.(*logrus.TextFormatter).DisableTimestamp = false	// keep timestamp
@@ -103,7 +115,21 @@ func main() {
 		gin.ForceConsoleColor()
 	}
 
-	// Setup templating system
+	// Override lal master key from environment.
+	if temp := os.Getenv("LAL_MASTER_KEY"); temp != "" {
+		lalMasterKey = temp
+	}
+	// Override streamer, if env exists.
+	if temp := os.Getenv("STREAMER_URL"); temp != "" {
+		streamerURL = temp
+	}
+	// Validate that the streamer has a valid URL (either from command-line or env var).
+	if err := validate.Var(streamerURL, "required,url"); err != nil {
+		logme.Fatalf("invalid streamer URL: %q, aborting\n", streamerURL)
+	}
+
+	// Setup templating system.
+
 	var err error	// needed for scope issues
 	if workingDirectory, err = os.Getwd(); err != nil {
 		workingDirectory = "."	// if os.Getwd() fails, use local directory, maybe it works (gwyneth 2022011.
@@ -114,7 +140,7 @@ func main() {
 		templatePath = filepath.Join(workingDirectory, "/templates")
 	}
 	htmlGlobFilePath := filepath.Join(templatePath, "/*.tpl")
-	logme.Printf("loading templates from pathToStaticFiles: %q, templatePath: %q, final destination: %q\n",
+	logme.Infof("loading templates from pathToStaticFiles: %q, templatePath: %q, final destination: %q\n",
 		pathToStaticFiles, templatePath, htmlGlobFilePath)
 
 	router.LoadHTMLGlob(htmlGlobFilePath)
