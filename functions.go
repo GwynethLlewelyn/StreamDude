@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"html/template"
-	"log"
 	"math"
 	"net/http"
 	"os/user"
@@ -18,6 +17,7 @@ import (
 	"github.com/dchest/uniuri"
 //	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+//	"github.com/sirupsen/logrus"
 )
 
 // funcName is @Sonia's solution to get the name of the function that Go is currently running.
@@ -39,8 +39,8 @@ func checkErrFatal(err error) {
 
 	if err != nil {
 		pc, file, line, ok := runtime.Caller(1)
-		// Log.Fatal(filepath.Base(file), ":", line, ":", pc, ok, " - panic:", err)
-		log.Fatalf("%s:%d [PC: %v] (%t) - %s ▶ %s", filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), err)
+		// logme.Fatal(filepath.Base(file), ":", line, ":", pc, ok, " - panic:", err)
+		logme.Fatalf("%s:%d [PC: %v] (%t) - %s ▶ %s\n", filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), err)
 	}
 }
 
@@ -49,8 +49,8 @@ func checkErrFatal(err error) {
 func checkErrPanic(err error) {
 	if err != nil {
 		pc, file, line, ok := runtime.Caller(1)
-		// Log.Panic(filepath.Base(file), ":", line, ":", pc, ok, " - panic:", err)
-		log.Panicf("%s:%d [PC: %v] (%t) - %s ▶ %s", filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), err)
+		// logme.Panic(filepath.Base(file), ":", line, ":", pc, ok, " - panic:", err)
+		logme.Panicf("%s:%d [PC: %v] (%t) - %s ▶ %s\n", filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), err)
 	}
 }
 
@@ -60,8 +60,8 @@ func checkErrPanic(err error) {
 func checkErr(err error) {
 	if err != nil {
 		pc, file, line, ok := runtime.Caller(1)
-//		Log.Error(filepath.Base(file), ":", line, ":", pc, ok, " - error:", err)
-		log.Printf("%s:%d [PC: %v] (%t) - %s ▶ %s", filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), err)
+//		logme.Error(filepath.Base(file), ":", line, ":", pc, ok, " - error:", err)
+		logme.Errorf("%s:%d [PC: %v] (%t) - %s ▶ %s\n", filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), err)
 	}
 }
 
@@ -72,8 +72,8 @@ func checkErrHTTP(c *gin.Context, httpStatus int, errorMessage string, err error
 	if err != nil {
 		c.String(httpStatus, errorMessage, err)
 		pc, file, line, ok := runtime.Caller(1)
-		// Log.Error("(", http.StatusText(httpStatus), ") ", filepath.Base(file), ":", line, ":", pc, ok, " - error:", errorMessage, err)
-		log.Printf("HTTP (%s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s)", http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
+		// logme.Error("(", http.StatusText(httpStatus), ") ", filepath.Base(file), ":", line, ":", pc, ok, " - error:", errorMessage, err)
+		logme.Errorf("HTTP (%s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
 		c.AbortWithError(httpStatus, err)
 	}
 }
@@ -83,8 +83,8 @@ func checkErrPanicHTTP(c *gin.Context, httpStatus int, errorMessage string, err 
 	if err != nil {
 		c.String(httpStatus, errorMessage, err)
 		pc, file, line, ok := runtime.Caller(1)
-		// Log.Panic("(", http.StatusText(httpStatus), ") ", filepath.Base(file), ":", line, ":", pc, ok, " - panic:", errorMessage, err)
-		log.Panicf("HTTP (%s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s)", http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
+		// logme.Panic("(", http.StatusText(httpStatus), ") ", filepath.Base(file), ":", line, ":", pc, ok, " - panic:", errorMessage, err)
+		logme.Panicf("HTTP (%s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
 		c.AbortWithError(httpStatus, err)
 	}
 }
@@ -93,10 +93,10 @@ func checkErrPanicHTTP(c *gin.Context, httpStatus int, errorMessage string, err 
 func checkErrJSON(c *gin.Context, httpStatus int, errorMessage string, err error) {
 	if err != nil {
 		// theoretically, all JSON API errors are 200 (gwyneth 2022)
-		c.JSON(http.StatusOK, gin.H{"status":"error", "message" : fmt.Sprintf("%s: %v", errorMessage, err)})
+		c.JSON(http.StatusOK, gin.H{"status":"error", "message" : fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
 		pc, file, line, ok := runtime.Caller(1)
-		// Log.Error("(", http.StatusText(httpStatus), ") ", filepath.Base(file), ":", line, ":", pc, ok, " - error:", errorMessage, err)
-		log.Printf("(JSON API error) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s)", filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
+		// logme.Error("(", http.StatusText(httpStatus), ") ", filepath.Base(file), ":", line, ":", pc, ok, " - error:", errorMessage, err)
+		logme.Printf("(JSON API error) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
 		c.AbortWithError(httpStatus, err)
 	}
 }
@@ -249,7 +249,7 @@ func environment(c *gin.Context, env gin.H) gin.H {
 	retMap := MergeMaps(data, env)
 
 	// if *config["ginMode"] == "debug" && retMap["Username"] != nil && retMap["Username"] != "" {
-	// 	Log.Debugf("environment(): All messages for user %q: %+v\n", retMap["Username"], retMap["Messages"])
+	// 	logme.Debugf("environment(): All messages for user %q: %+v\n", retMap["Username"], retMap["Messages"])
 	// }
 
 	c.Header("X-Clacks-Overhead", "GNU Terry Pratchett")	// fans will know what this is for (gwyneth 20211115)

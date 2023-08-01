@@ -11,9 +11,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+
+	//	"github.com/google/martian/log"
 	flag "github.com/karrick/golf" // flag replacement library
 	"github.com/mattn/go-isatty"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Globals
@@ -30,14 +32,18 @@ var (
 	workingDirectory string // workingDirectory is the result of os.Getwd() or "." if that fails.
 	urlPathPrefix string	// URL path prefix
 	lslSignaturePIN string	// what we send from LSL
+	debug bool				// Set to debug level
 
 	// use a single instance of Validate, it caches struct info
 	validate *validator.Validate
+
+	// Global logger using logrus.
+	logme = logrus.New()
 )
 
 func main() {
 	// Extract things from command line
-	flag.BoolVarP(&help,			'h', "help",			false, "show command usage")
+	flag.BoolVarP(&help,			'h', "help",			false, 			"show command usage")
 	flag.StringVarP(&ffmpegPath,	'm', "ffmpeg",			"/usr/local/bin/ffmpeg", "path to ffmpeg executable")
 	flag.StringVarP(&host,			'j', "host",			"localhost", 	"server host where we're running")
 	flag.StringVarP(&serverPort,	'p', "port", 			":3554", 		"port where StreamDude server is listening")
@@ -46,6 +52,7 @@ func main() {
 	flag.StringVarP(&pathToStaticFiles, 's', "staticpath",	"./assets",		"where static assets are stored")
 	flag.StringVarP(&urlPathPrefix,	'u', "urlprefix",		"",				"URL path prefix")
 	flag.StringVarP(&lslSignaturePIN, 'l',	"lslpin",		"0000",			"LSL signature PIN")
+	flag.BoolVarP(&debug,			'd', "debug",			false, 			"set debug level (omit for normal logs)")
 
 	flag.Parse()
 
@@ -55,7 +62,7 @@ func main() {
 	}
 
 	// setup logrus logger
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+//	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// setup a single instance of the validator service
 	validate = validator.New()
@@ -68,15 +75,27 @@ func main() {
 	router.SetTrustedProxies(nil)	// as per https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies (gwyneth 20220111).
 	router.TrustedPlatform = gin.PlatformCloudflare	// we're running behind Cloudflare CDN
 
+	// Configure logrus.
+	logme.Formatter = new(logrus.TextFormatter)
+	logme.Formatter.(*logrus.TextFormatter).DisableColors = false		// keep colors
+	logme.Formatter.(*logrus.TextFormatter).DisableTimestamp = false	// keep timestamp
+
+	// set debug level, depending on the argument value
+	if (debug) {
+		logme.SetLevel(logrus.DebugLevel)
+	}
+	// log.Debugf("Output descriptor: %+v\n", log.Out)
+
 	// respect CLICOLOR_FORCE and NO_COLOR in Gin (logrus is already compliant)
 	// Figure out if we're running in a terminal, and, if so, apply all the relevant commands
 	// See https://bixense.com/clicolors/ and https://no-color.org/ (gwyneth 20230731)
 
 	var isTerm = true	// are we logging to a tty?
 
+	// for the weird type casting, see https://github.com/mattn/go-isatty/issues/80#issuecomment-1470096598 (gwyneth 20230801)
 	if os.Getenv("TERM") == "dumb" ||
-		(!isatty.IsTerminal(log.Out) && !isatty.IsCygwinTerminal(log.Out)) {
-		isTerm = false
+		(!isatty.IsTerminal(logme.Out.(*os.File).Fd()) && !isatty.IsCygwinTerminal(logme.Out.(*os.File).Fd())) {
+			isTerm = false
 	}
 	if _, ok := os.LookupEnv("NO_COLOR"); ok {
 		gin.DisableConsoleColor()
@@ -95,7 +114,7 @@ func main() {
 		templatePath = filepath.Join(workingDirectory, "/templates")
 	}
 	htmlGlobFilePath := filepath.Join(templatePath, "/*.tpl")
-	log.Printf("loading templates from pathToStaticFiles: %q, templatePath: %q, final destination: %q\n",
+	logme.Printf("loading templates from pathToStaticFiles: %q, templatePath: %q, final destination: %q\n",
 		pathToStaticFiles, templatePath, htmlGlobFilePath)
 
 	router.LoadHTMLGlob(htmlGlobFilePath)
@@ -107,9 +126,31 @@ func main() {
 	router.StaticFile(path.Join(urlPathPrefix, "/browserconfig.xml"), filepath.Join(pathToStaticFiles, "/assets/favicons/browserconfig.xml"))
 	router.StaticFile(path.Join(urlPathPrefix, "/site.webmanifest"), filepath.Join(pathToStaticFiles, "/assets/favicons/site.webmanifest"))
 
+	// Make the router handle these exceptions with better HTTP error codes
+	router.HandleMethodNotAllowed = true
+	router.RedirectTrailingSlash = true
+	router.RedirectFixedPath = true
+
 	// Ping handler (who knows, it might be useful in some contexts... such as Let's Encrypt certificates
 	router.GET(path.Join(urlPathPrefix, "/ping"), func(c *gin.Context) {
-		c.String(http.StatusOK, "pong to " + c.RemoteIP())
+		payload := "pong back to " + c.RemoteIP()
+
+		switch c.ContentType() {
+			case "application/json":
+				c.JSON(http.StatusOK, gin.H{"status":"ok", "message": payload})
+			case "text/html":
+				c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
+					"Title"			: http.StatusMethodNotAllowed,
+					"description"	: http.StatusText(http.StatusOK),
+					"Text"			: payload,
+				}))
+			case "text/xml":
+			case "application/soap+xml":
+			case "application/xml":
+				c.XML(http.StatusOK, gin.H{"status":"ok", "message": payload})
+			default:
+				c.String(http.StatusOK, payload)
+		}
 	})
 
 	// Lower-leval API for
@@ -121,21 +162,47 @@ func main() {
 
 	// Catch all other routes and send back an error
 	router.NoRoute(func(c *gin.Context) {
-		c.HTML(http.StatusNotFound, "generic.tpl", environment(c, gin.H{
-			"Title"			: http.StatusNotFound,
-			"description"	: http.StatusText(http.StatusNotFound),
-			"Text"			: "Command " + c.Request.URL.Path + " not found.",
-		}))
-	})
-	router.NoMethod(func(c *gin.Context) {
-		c.HTML(http.StatusMethodNotAllowed, "generic.tpl", environment(c, gin.H{
-			"Title"			: http.StatusMethodNotAllowed,
-			"description"	: http.StatusText(http.StatusMethodNotAllowed),
-			"Text"			: "Method " + c.Request.Method + " not allowed.",
-		}))
+		errorMessage := "Command " + c.Request.URL.Path + " not found."
+
+		switch c.ContentType() {
+			case "application/json":
+				c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": errorMessage})
+			case "text/html":
+				c.HTML(http.StatusNotFound, "generic.tpl", environment(c, gin.H{
+					"Title"			: http.StatusNotFound,
+					"description"	: http.StatusText(http.StatusNotFound),
+					"Text"			: errorMessage,
+				}))
+			case "text/xml":
+			case "application/soap+xml":
+			case "application/xml":
+				c.XML(http.StatusNotFound, gin.H{"status":"error", "message": errorMessage})
+			default:
+				c.String(http.StatusNotFound, errorMessage)
+		}
 	})
 
+	router.NoMethod(func(c *gin.Context) {
+		errorMessage := "Method " + c.Request.Method + " not allowed."
+
+		switch c.ContentType() {
+			case "application/json":
+				c.JSON(http.StatusMethodNotAllowed, gin.H{"status":"error", "message": errorMessage})
+			case "text/html":
+				c.HTML(http.StatusMethodNotAllowed, "generic.tpl", environment(c, gin.H{
+					"Title"			: http.StatusMethodNotAllowed,
+					"description"	: http.StatusText(http.StatusMethodNotAllowed),
+					"Text"			: errorMessage,
+				}))
+			case "text/xml":
+			case "application/soap+xml":
+			case "application/xml":
+				c.XML(http.StatusMethodNotAllowed, gin.H{"status":"error", "message": errorMessage})
+			default:
+				c.String(http.StatusMethodNotAllowed, errorMessage)
+		}
+	})
 	// this might require another layer to check for https
-	log.Fatal(router.Run(host + serverPort))
+	logme.Fatal(router.Run(host + serverPort))
 
 }
