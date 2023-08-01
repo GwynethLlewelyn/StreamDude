@@ -163,7 +163,7 @@ func main() {
 	// Ping handler (who knows, it might be useful in some contexts... such as Let's Encrypt certificates
 	router.Any(path.Join(urlPathPrefix, "/ping"), func(c *gin.Context) {
 		payload := "pong back to " + c.RemoteIP()
-		logme.Debugln("This request had Content-Type set to: ", c.ContentType(), " and accepts ", c.GetHeader("Accept"))
+		logme.Debugf("Ping request had Content-Type set to %q and accepts %q\n", c.ContentType(), c.GetHeader("Accept"))
 
 		contentType := c.GetHeader("Accept")
 		if contentType == "" {
