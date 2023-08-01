@@ -2,6 +2,8 @@
 
 # StreamDude
 
+[![Go](https://github.com/GwynethLlewelyn/StreamDude/actions/workflows/go.yml/badge.svg)](https://github.com/GwynethLlewelyn/StreamDude/actions/workflows/go.yml)
+
 A work in progress simple playlist manager to remotely send files to a streaming server.
 
 Licensed under a [MIT License](https://gwyneth-llewelyn.mit-license.org/).
