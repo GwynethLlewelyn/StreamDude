@@ -2,7 +2,7 @@
 
 # StreamDude
 
-[![Go](https://github.com/GwynethLlewelyn/StreamDude/actions/workflows/go.yml/badge.svg)](https://github.com/GwynethLlewelyn/StreamDude/actions/workflows/go.yml)
+[![Go](https://github.com/GwynethLlewelyn/StreamDude/actions/workflows/go.yml/badge.svg)](https://github.com/GwynethLlewelyn/StreamDude/actions/workflows/go.yml) [![Codacy Security Scan](https://github.com/GwynethLlewelyn/StreamDude/actions/workflows/codacy.yml/badge.svg)](https://github.com/GwynethLlewelyn/StreamDude/actions/workflows/codacy.yml)
 
 A work in progress simple playlist manager to remotely send files to a streaming server.
 
