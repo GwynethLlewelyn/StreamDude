@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"net/url"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -27,13 +29,34 @@ type Command struct {
 func streamFile(filename string) error {
 	logme.Debugf("Filename to stream: %q\n", filename)
 
-	cmd := exec.Command(ffmpegPath, "-i", filename, "")
-	stdoutStderr, err := cmd.CombinedOutput()
-	if err != nil {
-		logme.Printf("error while running %q: %q \n", ffmpegPath, err)
+	// ffmpeg params
+	/*
+	-re -stream_loop -1 -i /var/www/clients/client6/web14/home/betafiles/data/beta-technologies/Universidade de Aveiro/LOCUS Project in Amiais/Panels SL/Painel_Preparativos/Preparativos.mp4 -acodec copy -vcodec copy -f rtsp -muxdelay 0.1 -rtsp_transport tcp rtsp://127.0.0.1:5544/Preparativos.mp4?lal_secret=0126471190816174f602a1e4b3cbd7b6
+	*/
+
+	if err := validate.Var(filename, "required,file"); err != nil {
+		logme.Errorf("cannot find/open file at %q: %q\n", filename, err)
 		return err
 	}
-	logme.Printf("✅ %s\n", stdoutStderr)
+
+	basename := filepath.Base(filename)
+	calcHash := getMD5Hash(lalMasterKey + basename)
+	cmdURL, err := url.JoinPath(streamerURL, basename)
+	if err != nil {
+		logme.Errorf("Could not create a proper URL from %q: %q\n", filename, err)
+		return err
+	}
+	cmdURL += "?lal_secret=" + calcHash
+	logme.Debugf("conjoined URL is: %q\n", cmdURL)
+
+	cmd := exec.Command(ffmpegPath, "-re", "-i", "-acodec", "copy", "-vcodec", "copy",
+		"-f", "rtsp", "-muxdelay", "0.1", "-rtsp_transport", "tcp", cmdURL, filename)
+	stdoutStderr, err := cmd.CombinedOutput()
+	if err != nil {
+		logme.Errorf("error while calling %q for url %q: %q \n", ffmpegPath, cmdURL, err)
+		return err
+	}
+	logme.Infof("✅ %s\n", stdoutStderr)
 	return nil
 }
 
