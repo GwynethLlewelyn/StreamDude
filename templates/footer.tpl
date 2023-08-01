@@ -8,7 +8,7 @@
 							<div class="row">
 								<div class="col-11">
 									<div class="copyright text-center my-auto">
-										<span>&copy; {{.now }} by <a href="https://locusproject.pt">LOCUS Project</a> and <a href="https://betatechnologies.info">Beta Technologies</a>. All rights reserved. Uses some <a href="https://startbootstrap.com/" target=_blank title="Bootstrap"><i class="bi bi-bootstrap-fill" aria-label="Bootstrap"></i></a> love and lots of <a href="https://golang.org/" target=_blank>Go.</a></span>
+										<span>&copy; {{.now }} by <a href="https://gwynethllewelyn.net">Gwyneth Llewelyn</a1>. All rights reserved. Uses some <a href="https://startbootstrap.com/" target=_blank title="Bootstrap"><i class="bi bi-bootstrap-fill" aria-label="Bootstrap"></i></a> love and lots of <a href="https://golang.org/" target=_blank>Go.</a></span>
 									</div>	<!-- /copyright -->
 								</div>	<!-- /col -->
 								<div class="col-1 align-content-end">
