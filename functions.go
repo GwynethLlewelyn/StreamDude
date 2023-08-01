@@ -106,6 +106,10 @@ func checkErrReply(c *gin.Context, httpStatus int, errorMessage string, err erro
 			contentType = c.ContentType()
 		}
 
+		if contentType == "*/*" {
+			contentType = "application/json"
+		}
+
 		switch contentType {
 			case "application/json":
 				c.JSON(httpStatus,

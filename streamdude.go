@@ -170,6 +170,10 @@ func main() {
 			contentType = c.ContentType()
 		}
 
+		if contentType == "*/*" {
+			contentType = "application/json"
+		}
+
 		switch contentType {
 			case "application/json":
 				c.JSON(http.StatusOK, gin.H{"status": "ok", "message": payload})
@@ -204,6 +208,10 @@ func main() {
 			contentType = c.ContentType()
 		}
 
+		if contentType == "*/*" {
+			contentType = "application/json"
+		}
+
 		switch contentType {
 			case "application/json":
 				c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": errorMessage})
@@ -228,6 +236,10 @@ func main() {
 		contentType := c.GetHeader("Accept")
 		if contentType == "" {
 			contentType = c.ContentType()
+		}
+
+		if contentType == "*/*" {
+			contentType = "application/json"
 		}
 
 		switch contentType {
