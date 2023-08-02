@@ -162,7 +162,16 @@ func main() {
 
 	// Ping handler (who knows, it might be useful in some contexts... such as Let's Encrypt certificates
 	router.Any(path.Join(urlPathPrefix, "/ping"), func(c *gin.Context) {
-		payload := "pong back to " + c.RemoteIP()
+		payload := "pong back to "
+		// check if we're behind Cloudflare
+		if c.GetHeader(gin.PlatformCloudflare) != "" {
+			payload += c.GetHeader(gin.PlatformCloudflare)	// this is CF-Connecting-IP from Cloudflare
+			if c.GetHeader("CF-IPCountry") != "" {			// this will usually be set by Cloudflare, too
+				payload += "(from " + c.GetHeader("CF-IPCountry") + ")"
+			}
+		} else {
+			payload += c.RemoteIP()
+		}
 		logme.Debugf("Ping request had Content-Type set to %q and accepts %q\n", c.ContentType(), c.GetHeader("Accept"))
 
 		contentType := c.GetHeader("Accept")
