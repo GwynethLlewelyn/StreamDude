@@ -14,10 +14,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"k8s.io/utils/strings"
 
 	//	"github.com/google/martian/log"
 	flag "github.com/karrick/golf" // flag replacement library
@@ -180,14 +180,11 @@ func main() {
 		logme.Debugf("ping request had Content-Type set to %q and accepts %q (we'll just get the first one)\n",
 			c.ContentType(), contentType)
 
-		contentType, _, _ := strings.Cut(contentType, ",")
+		contentType, _, _ = strings.Cut(contentType, ",")
 
 		if contentType == "" {
 			contentType = c.ContentType()
 		}
-
-		contentType	:= strings.ShortenString()
-
 		if contentType == "*/*" {
 			contentType = "application/json"
 		}
