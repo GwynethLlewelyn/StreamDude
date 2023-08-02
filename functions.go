@@ -248,14 +248,14 @@ func environment(c *gin.Context, env gin.H) gin.H {
 	// }
 
 	// Check if we have a (configured) frontend, and, if so, adjust templates.
-	// if frontEnd == "nginx" {
-	// 	serverPort = externalPort	// should also be fine if it's empty!
-	// 	if externalHost == "" || externalHost == "127.0.0.1" || externalHost == "[::1]" || externalHost == "localhost" {
-	// 		tplHost = "localhost"
-	// 	} else {
-	// 		tplHost = externalHost
-	// 	}
-	// }
+	if frontEnd == "nginx" {
+		serverPort = externalPort	// should also be fine if it's empty!
+		if externalHost == "" || externalHost == "127.0.0.1" || externalHost == "[::1]" || externalHost == "localhost" {
+			tplHost = "localhost"
+		} else {
+			tplHost = externalHost
+		}
+	}
 
 	// data is what gets sent to the underlying template engine as variables to fill in placeholders.
 	var data = gin.H{

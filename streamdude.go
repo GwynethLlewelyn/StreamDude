@@ -33,7 +33,9 @@ var (
 	ginMode *string			// ginMode is `debug` for development, `release` for production.
 	host string				// this host — where StreamDude is running.
 	serverPort string		// port where StreamDude server is listening
+	frontEnd string			// FrontEnd is usually nginx but will probably be ignored later on.
 	externalPort string		// external port if using a reverse proxy
+	externalHost string		// external hostname if using a reverse proxy
 	templatePath string		// where templates are held
 	pathToStaticFiles string // where static assets are stored
 	workingDirectory string // workingDirectory is the result of os.Getwd() or "." if that fails.
@@ -53,12 +55,21 @@ var (
 )
 
 func main() {
+	// get the hostname, which is just used once, though
+	hostname, err := os.Hostname()
+	if err != nil {
+		// who cares what the error was...
+		hostname = "localhost"
+	}
+
 	// Extract things from command line
 	flag.BoolVarP(&help,			'h', "help",			false, 			"show command usage")
 	flag.StringVarP(&ffmpegPath,	'm', "ffmpeg",			"/usr/local/bin/ffmpeg", "path to ffmpeg executable")
 	flag.StringVarP(&host,			'j', "host",			"localhost", 	"server host where we're running")
 	flag.StringVarP(&serverPort,	'p', "port", 			":3554", 		"port where StreamDude server is listening")
-	flag.StringVarP(&externalPort,	'P', "external",		":80",			"external port if using a reverse proxy")
+	flag.StringVarP(&frontEnd,		'f', "frontend", 		"nginx", 		"type of frontend/reverse proxy")
+	flag.StringVarP(&externalPort,	'P', "externalport",	":80",			"external port if using a reverse proxy")
+	flag.StringVarP(&externalHost,	'x', "externalhost",	hostname,		"external hostname if using a reverse proxy")
 	flag.StringVarP(&templatePath,	't', "templatepath",	"./templates",	"where templates are held")
 	flag.StringVarP(&pathToStaticFiles, 's', "staticpath",	"./assets",		"where static assets are stored")
 	flag.StringVarP(&urlPathPrefix,	'u', "urlprefix",		"",				"URL path prefix")
@@ -133,9 +144,15 @@ func main() {
 	}
 	logme.Infof("remote streamer URL set to: %q\n", streamerURL)
 
+	if err := validate.Var(externalHost, "hostname_rfc1123,omitempty"); err != nil {
+		logme.Errorf("invalid external host name: %q, reverting to empty string\n", externalHost)
+		externalHost = ""
+	}
+	logme.Infof("external hostname set to: %q (empty is ok)\n", externalHost)
+
 	// Setup templating system.
 
-	var err error	// needed for scope issues
+	// var err error	// needed for scope issues
 	if workingDirectory, err = os.Getwd(); err != nil {
 		workingDirectory = "."	// if os.Getwd() fails, use local directory, maybe it works (gwyneth 2022011.
 		// no need to panic, this error is 'fixed'!
