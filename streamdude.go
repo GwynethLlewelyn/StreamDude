@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"k8s.io/utils/strings"
 
 	//	"github.com/google/martian/log"
 	flag "github.com/karrick/golf" // flag replacement library
@@ -81,8 +82,9 @@ func main() {
 	 */
 	router := gin.Default()
 	router.Delims("{{", "}}") // stick to default delims for Go templates.
-	router.SetTrustedProxies(nil)	// as per https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies (gwyneth 20220111).
-	router.TrustedPlatform = gin.PlatformCloudflare	// we're running behind Cloudflare CDN
+	// router.SetTrustedProxies(nil)	// as per https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies (gwyneth 20220111).
+	router.SetTrustedProxies([]string{"127.0.0.1"})	// apparently we should at least trust "our" proxy
+	router.TrustedPlatform = gin.PlatformCloudflare	// we're running behind Cloudflare CDN, this will retrieve the correct IP address. Hopefully.
 
 	// Configure logrus.
 	//	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -170,14 +172,21 @@ func main() {
 				payload += "(from " + c.GetHeader("CF-IPCountry") + ")"
 			}
 		} else {
-			payload += c.RemoteIP()
+			logme.Debugln("apparently Gin didn't understand that we're behind Cloudflare... getting ClientIP() instead")
+			payload += c.ClientIP()
 		}
-		logme.Debugf("Ping request had Content-Type set to %q and accepts %q\n", c.ContentType(), c.GetHeader("Accept"))
 
 		contentType := c.GetHeader("Accept")
+		logme.Debugf("ping request had Content-Type set to %q and accepts %q (we'll just get the first one)\n",
+			c.ContentType(), contentType)
+
+		contentType, _, _ := strings.Cut(contentType, ",")
+
 		if contentType == "" {
 			contentType = c.ContentType()
 		}
+
+		contentType	:= strings.ShortenString()
 
 		if contentType == "*/*" {
 			contentType = "application/json"
@@ -196,6 +205,7 @@ func main() {
 			case "application/soap+xml":
 			case "application/xml":
 				c.XML(http.StatusOK, gin.H{"status": "ok", "message": payload})
+			case "text/plain":
 			default:
 				c.String(http.StatusOK, payload)
 		}
@@ -234,6 +244,7 @@ func main() {
 			case "application/soap+xml":
 			case "application/xml":
 				c.XML(http.StatusNotFound, gin.H{"status": "error", "message": errorMessage})
+			case "text/plain":
 			default:
 				c.String(http.StatusNotFound, errorMessage)
 		}
@@ -264,6 +275,7 @@ func main() {
 			case "application/soap+xml":
 			case "application/xml":
 				c.XML(http.StatusMethodNotAllowed, gin.H{"status": "error", "message": errorMessage})
+			case "text/plain":
 			default:
 				c.String(http.StatusMethodNotAllowed, errorMessage)
 		}
