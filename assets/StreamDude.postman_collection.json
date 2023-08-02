@@ -1,0 +1,195 @@
+{
+	"info": {
+		"_postman_id": "51de5ab0-b0da-4664-8ccb-224e681627e4",
+		"name": "StreamDude",
+		"description": "<img src=\"https://content.pstmn.io/0e7f14e4-72d0-4eb4-b2b1-d9ce2712a0df/c3RyZWFtZHVkZS1sb2dvLTEyOHgxMjgucG5n\">\n\n[StreamDude]() is a Go web application that exposes a REST API to allow users to send files stored on a remote server to a streaming server.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "14772119"
+	},
+	"item": [
+		{
+			"name": "Ping",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept": true
+				}
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{callURL}}/ping",
+					"host": [
+						"{{callURL}}"
+					],
+					"path": [
+						"ping"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Request authentication token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Got a token\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.token).to.not.empty;",
+							"    console.info(\"Token is: \" + jsonData.token);",
+							"    pm.collectionVariables.set(\"token\", jsonData.token);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.info(\"Before auth call, token is currently: \" + pm.variables.get(\"token\"));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{ \"objectPIN\": \"{{objectPIN}}\" }",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{callURL}}/api/auth",
+					"host": [
+						"{{callURL}}"
+					],
+					"path": [
+						"api",
+						"auth"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Play a file, sending our auth token",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.info(\"Before play call, body is currently: \" + ",
+							"pm.request.body.toString());"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"token\": \"{{token}}\",\n    \"filename\": \"{{filename}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{callURL}}/api/play",
+					"host": [
+						"{{callURL}}"
+					],
+					"path": [
+						"api",
+						"play"
+					],
+					"query": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"description": "Auth token to be sent",
+							"disabled": true
+						},
+						{
+							"key": "filename",
+							"value": "{{filename}}",
+							"description": "File to be played on remote client, sent to streamer",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "callURL",
+			"value": "http://localhost:3445/",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "objectPIN",
+			"value": "1234",
+			"type": "string"
+		},
+		{
+			"key": "filename",
+			"value": "demo.mp4",
+			"type": "string"
+		}
+	]
+}
