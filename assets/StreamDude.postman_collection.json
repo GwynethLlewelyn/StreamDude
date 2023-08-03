@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "51de5ab0-b0da-4664-8ccb-224e681627e4",
 		"name": "StreamDude",
-		"description": "<img src=\"https://content.pstmn.io/0e7f14e4-72d0-4eb4-b2b1-d9ce2712a0df/c3RyZWFtZHVkZS1sb2dvLTEyOHgxMjgucG5n\">\n\n[StreamDude]() is a Go web application that exposes a REST API to allow users to send files stored on a remote server to a streaming server.",
+		"description": "<img src=\"https://content.pstmn.io/0e7f14e4-72d0-4eb4-b2b1-d9ce2712a0df/c3RyZWFtZHVkZS1sb2dvLTEyOHgxMjgucG5n\">\n\n[StreamDude]() is a Go web application that exposes a REST API to allow users to send files stored on a remote server to a streaming server.\n\n---\n\nLaunch it with `./StreamDude -d -r rtsp://127.0.0.1:5544/ -u /StreamDude -x your.host.name -P \":443\" -l 1234`",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "14772119"
 	},
@@ -173,7 +173,7 @@
 	"variable": [
 		{
 			"key": "callURL",
-			"value": "http://localhost:3445/",
+			"value": "https://your.hostname.here/StreamDude/",
 			"type": "string"
 		},
 		{
@@ -183,12 +183,12 @@
 		},
 		{
 			"key": "objectPIN",
-			"value": "1234",
+			"value": "6666",
 			"type": "string"
 		},
 		{
 			"key": "filename",
-			"value": "demo.mp4",
+			"value": "/path/to/my-fantastic-movie.mp4",
 			"type": "string"
 		}
 	]
