@@ -60,8 +60,8 @@ func streamFile(filename string) error {
 		runtime.LockOSThread()	// lock to safely execute programs.
 		defer runtime.UnlockOSThread()
 
-		cmd := exec.Command(ffmpegPath, "-re", "-i", "-acodec", "copy", "-vcodec", "copy",
-			"-f", "rtsp", "-muxdelay", "0.1", "-rtsp_transport", "tcp", cmdURL, filename)
+		cmd := exec.Command(ffmpegPath, "-re", "-i", filename, "-acodec", "copy", "-vcodec", "copy",
+			"-f", "rtsp", "-muxdelay", "0.1", "-rtsp_transport", "tcp", cmdURL)
 		logme.Debugf("command to be executed: %s\n", cmd.String())
 		// launch ffmpeg, but don't wait for it.
 		err := cmd.Start()

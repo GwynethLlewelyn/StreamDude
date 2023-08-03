@@ -212,12 +212,45 @@ func main() {
 		}
 	})
 
-	// Lower-leval API for
+	// Main website, as far as we can call it a "website".
+	router.GET(path.Join(urlPathPrefix, "/home"), func(c *gin.Context) {
+			// Default message for those who do NOT use application/html!
+			homepageMessage := "It works. You should see it in HTML instead, it's so much nicer!"
+
+			switch getContentType(c) {
+				case "application/json":
+					c.JSON(http.StatusNotFound, gin.H{"status": "ok", "message": homepageMessage})
+				case "text/html":
+					c.HTML(http.StatusNotFound, "home.tpl", environment(c, gin.H{
+						"Title"			: "Welcome!",
+						"description"	: "StreamDude demo homepage",
+						"Text"			: "This is StreamDude — nothing will work on the menus, except Ping.",
+					}))
+				case "text/xml":
+				case "application/soap+xml":
+				case "application/xml":
+					c.XML(http.StatusNotFound, gin.H{"status": "ok", "message": homepageMessage})
+				case "text/plain":
+				default:
+					c.String(http.StatusNotFound, homepageMessage)
+			}
+		})
+
+	// Lower-leval API for calling things
 	apiRoutes := router.Group(path.Join(urlPathPrefix, "/api"))
 	{		// base page for complex scripts.
 		apiRoutes.POST("/play",	apiStreamFile)
 		apiRoutes.POST("/auth",	apiSimpleAuthGenKey)
 	}
+
+	// Shows the credits page.
+	router.GET(path.Join(urlPathPrefix, "/credits"), func(c *gin.Context) {
+		c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
+			"Title"			: "Welcome!",
+			"description"	: "Credits",
+			"Text"			: "One day, we will credit here everybody."		}))
+	})
+
 
 	// Catch all other routes and send back an error
 	router.NoRoute(func(c *gin.Context) {
@@ -227,11 +260,12 @@ func main() {
 			case "application/json":
 				c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": errorMessage})
 			case "text/html":
-				c.HTML(http.StatusNotFound, "generic.tpl", environment(c, gin.H{
+				c.Redirect(http.StatusMovedPermanently, path.Join(urlPathPrefix, "/home"))
+/* 				c.HTML(http.StatusNotFound, "generic.tpl", environment(c, gin.H{
 					"Title"			: http.StatusNotFound,
 					"description"	: http.StatusText(http.StatusNotFound),
 					"Text"			: errorMessage,
-				}))
+				})) */
 			case "text/xml":
 			case "application/soap+xml":
 			case "application/xml":
@@ -249,11 +283,12 @@ func main() {
 			case "application/json":
 				c.JSON(http.StatusMethodNotAllowed, gin.H{"status": "error", "message": errorMessage})
 			case "text/html":
-				c.HTML(http.StatusMethodNotAllowed, "generic.tpl", environment(c, gin.H{
+				c.Redirect(http.StatusMovedPermanently, path.Join(urlPathPrefix, "/home"))
+/* 				c.HTML(http.StatusMethodNotAllowed, "generic.tpl", environment(c, gin.H{
 					"Title"			: http.StatusMethodNotAllowed,
 					"description"	: http.StatusText(http.StatusMethodNotAllowed),
 					"Text"			: errorMessage,
-				}))
+				})) */
 			case "text/xml":
 			case "application/soap+xml":
 			case "application/xml":
@@ -271,8 +306,3 @@ func main() {
 	// this might require another layer to check for https
 	logme.Fatal(router.Run(host + serverPort))
 }
-
-/*
- * Some special cases
- */
-
