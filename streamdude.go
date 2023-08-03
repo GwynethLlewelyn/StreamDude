@@ -59,6 +59,7 @@ func main() {
 	hostname, err := os.Hostname()
 	if err != nil {
 		// who cares what the error was...
+		logme.Warningf("system hostname not found (%s), using localhost instead", err)
 		hostname = "localhost"
 	}
 
@@ -236,21 +237,20 @@ func main() {
 			}
 		})
 
+	// Shows the credits page.
+	router.GET(path.Join(urlPathPrefix, "/credits"), func(c *gin.Context) {
+		c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
+			"Title"			: "Credits",
+			"description"	: "Credits",
+			"Text"			: "One day, we will credit here everybody."		}))
+	})
+
 	// Lower-leval API for calling things
 	apiRoutes := router.Group(path.Join(urlPathPrefix, "/api"))
 	{		// base page for complex scripts.
 		apiRoutes.POST("/play",	apiStreamFile)
 		apiRoutes.POST("/auth",	apiSimpleAuthGenKey)
 	}
-
-	// Shows the credits page.
-	router.GET(path.Join(urlPathPrefix, "/credits"), func(c *gin.Context) {
-		c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
-			"Title"			: "Welcome!",
-			"description"	: "Credits",
-			"Text"			: "One day, we will credit here everybody."		}))
-	})
-
 
 	// Catch all other routes and send back an error
 	router.NoRoute(func(c *gin.Context) {
