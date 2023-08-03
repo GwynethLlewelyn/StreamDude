@@ -14,7 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
+	//	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -109,7 +109,7 @@ func main() {
 		logme.SetLevel(logrus.DebugLevel)
 	}
 	// logme.Debugf("Output descriptor: %+v\n", logme.Out)
-	logme.Debugf("Debug level set to %q\n", logme.GetLevel().String())
+	logme.Debugf("Logging debug level set to %q\n", logme.GetLevel().String())
 
 	// respect CLICOLOR_FORCE and NO_COLOR in Gin (logrus is already compliant)
 	// Figure out if we're running in a terminal, and, if so, apply all the relevant commands
@@ -193,20 +193,7 @@ func main() {
 			payload += c.ClientIP()
 		}
 
-		contentType := c.GetHeader("Accept")
-		logme.Debugf("ping request had Content-Type set to %q and accepts %q (we'll just get the first one)\n",
-			c.ContentType(), contentType)
-
-		contentType, _, _ = strings.Cut(contentType, ",")
-
-		if contentType == "" {
-			contentType = c.ContentType()
-		}
-		if contentType == "*/*" {
-			contentType = "application/json"
-		}
-
-		switch contentType {
+		switch getContentType(c) {
 			case "application/json":
 				c.JSON(http.StatusOK, gin.H{"status": "ok", "message": payload})
 			case "text/html":
@@ -236,18 +223,7 @@ func main() {
 	router.NoRoute(func(c *gin.Context) {
 		errorMessage := "Command " + c.Request.URL.Path + " not found."
 
-		contentType := c.GetHeader("Accept")
-		contentType, _, _ = strings.Cut(contentType, ",")
-
-		if contentType == "" {
-			contentType = c.ContentType()
-		}
-
-		if contentType == "*/*" {
-			contentType = "application/json"
-		}
-
-		switch contentType {
+		switch getContentType(c) {
 			case "application/json":
 				c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": errorMessage})
 			case "text/html":
@@ -269,18 +245,7 @@ func main() {
 	router.NoMethod(func(c *gin.Context) {
 		errorMessage := "Method " + c.Request.Method + " not allowed."
 
-		contentType := c.GetHeader("Accept")
-		contentType, _, _ = strings.Cut(contentType, ",")
-
-		if contentType == "" {
-			contentType = c.ContentType()
-		}
-
-		if contentType == "*/*" {
-			contentType = "application/json"
-		}
-
-		switch contentType {
+		switch getContentType(c) {
 			case "application/json":
 				c.JSON(http.StatusMethodNotAllowed, gin.H{"status": "error", "message": errorMessage})
 			case "text/html":

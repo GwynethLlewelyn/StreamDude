@@ -12,6 +12,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/dchest/uniuri"
@@ -26,6 +27,29 @@ import (
 func funcName() string {
 	pc, _, _, _ := runtime.Caller(1)
 	return runtime.FuncForPC(pc).Name()
+}
+
+// getContentType parses the Accept and Content-Type headers to figure out
+// what content type to use.
+func getContentType(c *gin.Context) string {
+	// As per specs, check Accept header first:
+	contentType := c.GetHeader("Accept")
+	// for now, we'll just use the _first_ content type in the list.
+	contentType, _, _ = strings.Cut(contentType, ",")
+
+	// No Accept? (e.g. GET). Then check the Content-Type header,
+	// using Gin's built-in function:
+	if contentType == "" {
+		contentType = c.ContentType()
+		// Note that Gin only returns the content type and not the charset etc.
+		// This might require in the future to use strings.Cut() again. (gwyneth 20230803)
+	}
+
+	// Do we accept everythinh? Then pick JSON as default.
+	if contentType == "*/*" {
+		contentType = "application/json"
+	}
+	return contentType
 }
 
 // Note: all the error codes need to be rewritten... it's getting unmanageable this way. (gwyneth 20220328)
@@ -101,15 +125,7 @@ func checkErrJSON(c *gin.Context, httpStatus int, errorMessage string, err error
 // Universal check for errors and reply using the correct content type.
 func checkErrReply(c *gin.Context, httpStatus int, errorMessage string, err error) {
 	if err != nil {
-		contentType := c.GetHeader("Accept")
-		if contentType == "" {
-			contentType = c.ContentType()
-		}
-
-		if contentType == "*/*" {
-			contentType = "application/json"
-		}
-
+		contentType := getContentType(c)
 		switch contentType {
 			case "application/json":
 				c.JSON(httpStatus,
@@ -124,6 +140,7 @@ func checkErrReply(c *gin.Context, httpStatus int, errorMessage string, err erro
 			case "application/soap+xml":
 			case "application/xml":
 				c.XML(httpStatus, gin.H{"status": "ok", "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
+			case "text/plain":
 			default:
 				c.String(httpStatus, errorMessage)
 		}
@@ -131,7 +148,12 @@ func checkErrReply(c *gin.Context, httpStatus int, errorMessage string, err erro
 		pc, file, line, ok := runtime.Caller(1)
 
 		logme.Printf("‹%s› (error %s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", contentType, http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
-		c.AbortWithError(httpStatus, err)
+		getContentType(c)
+		if contentType == "application/json" {
+			c.AbortWithStatusJSON(httpStatus, gin.H{"status": "error", "message": err.Error()})
+		} else {
+			c.AbortWithError(httpStatus, err)
+		}
 	}
 }
 
