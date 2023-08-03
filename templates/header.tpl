@@ -71,7 +71,7 @@
 			<!-- A grey horizontal navbar that becomes vertical on small screens.
 			Used to have 'fixed-top' but this seems to put everything too transparent for my taste... -->
 			<nav class="navbar navbar-expand-md navbar-light bg-secondary text-primary fixed-top border-bottom">
-				<a class="navbar-brand" href="{{- .URLPathPrefix -}}/admin/home">
+				<a class="navbar-brand" href="{{- .URLPathPrefix -}}">
 					<img src="{{- .URLPathPrefix -}}/assets/logos/streamdude-logo-128x128.png" class="svg-logo bg-white rounded shadow-lg" alt="StreamDude Logo - Home" title="StreamDude Logo - Home">
 				</a>
 				<!-- Toggler/collapsible Button -->
@@ -106,7 +106,7 @@
 							</li>
 						</li>-->
 						<li class="nav-item">
-							<a class="nav-link disabled" href="{{- .URLPathPrefix -}}/credits"><i class="bi bi-info-circle" aria-hidden="true">&nbsp;</i>Credits</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}/credits"><i class="bi bi-info-circle" aria-hidden="true">&nbsp;</i>Credits</a>
 						</li>
 					</ul>
 				</div>
