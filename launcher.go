@@ -4,10 +4,11 @@ package main
 import (
 	//	"log"
 	"fmt"
-	"net/http"
-	"os/exec"
-	"net/url"
 	"path/filepath"
+	"net/http"
+	"net/url"
+	"os/exec"
+	"runtime"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,9 @@ func streamFile(filename string) error {
 		return err
 	}
 
+	// for lal server: calculate the simple hash allowing execution.
+	// TODO(gwyneth): deal with the way it works for other streaming services,
+	// where it is more customary to send login/password OOB. (gwyneth 20230803)
 	basename := filepath.Base(filename)
 	calcHash := getMD5Hash(lalMasterKey + basename)
 	cmdURL, err := url.JoinPath(streamerURL, basename)
@@ -47,16 +51,34 @@ func streamFile(filename string) error {
 		return err
 	}
 	cmdURL += "?lal_secret=" + calcHash
-	logme.Debugf("conjoined URL is: %q\n", cmdURL)
+	logme.Debugf("conjoined URL for streaming is: %q\n", cmdURL)
 
-	cmd := exec.Command(ffmpegPath, "-re", "-i", "-acodec", "copy", "-vcodec", "copy",
-		"-f", "rtsp", "-muxdelay", "0.1", "-rtsp_transport", "tcp", cmdURL, filename)
-	stdoutStderr, err := cmd.CombinedOutput()
-	if err != nil {
-		logme.Errorf("error while calling %q for url %q: %q \n", ffmpegPath, cmdURL, err)
-		return err
-	}
-	logme.Infof("✅ %s\n", stdoutStderr)
+	// Since ffmpeg may be running for a while, let's start this in a goroutine
+	// and wait there, while relinquishing resources and allowing other things to run.
+	// (gwyneth 20230803)
+	go func() {
+		runtime.LockOSThread()	// lock to safely execute programs.
+		defer runtime.UnlockOSThread()
+
+		cmd := exec.Command(ffmpegPath, "-re", "-i", "-acodec", "copy", "-vcodec", "copy",
+			"-f", "rtsp", "-muxdelay", "0.1", "-rtsp_transport", "tcp", cmdURL, filename)
+		logme.Debugf("command to be executed: %s\n", cmd.String())
+		// launch ffmpeg, but don't wait for it.
+		err := cmd.Start()
+		if err != nil {
+			logme.Errorf("could not start %s, error was: %s\n", ffmpegPath, err)
+			runtime.Goexit()
+		}
+		logme.Infof("waiting for command to finish...")
+		runtime.Gosched()	// we are waiting, so we yield CPU to other goroutines.
+		err = cmd.Wait()
+		if err != nil {
+			logme.Errorf("command finished with error: %v\n", err)
+			runtime.Goexit()
+		}
+		logme.Infof("✅ %s %s terminated with success\n", ffmpegPath, filename)
+	}()
+
 	return nil
 }
 

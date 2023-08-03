@@ -237,6 +237,8 @@ func main() {
 		errorMessage := "Command " + c.Request.URL.Path + " not found."
 
 		contentType := c.GetHeader("Accept")
+		contentType, _, _ = strings.Cut(contentType, ",")
+
 		if contentType == "" {
 			contentType = c.ContentType()
 		}
@@ -268,6 +270,8 @@ func main() {
 		errorMessage := "Method " + c.Request.Method + " not allowed."
 
 		contentType := c.GetHeader("Accept")
+		contentType, _, _ = strings.Cut(contentType, ",")
+
 		if contentType == "" {
 			contentType = c.ContentType()
 		}
