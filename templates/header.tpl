@@ -81,8 +81,7 @@
 				<div class="collapse navbar-collapse" id="collapsibleNavbar">
 					<ul class="navbar-nav">
 						<li class="nav-item">
-							<a class="nav-link" href="{{- .URLPathPrefix -}}/ping"><i class="bi bi-
-								broadcast-pin" aria-hidden="true"></i>&nbsp;Ping</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}/ping"><i class="bi bi-broadcast-pin" aria-hidden="true"></i>&nbsp;Ping</a>
 						</li>
 						<li class="nav-item">
 							<a class="nav-link" href="{{- .URLPathPrefix -}}/api/auth"><i class="bi bi-person-lock" aria-hidden="true"></i>&nbsp;Authentication</a>
@@ -107,7 +106,7 @@
 							</li>
 						</li>-->
 						<li class="nav-item">
-							<a class="nav-link inactive" href="{{- .URLPathPrefix -}}/credits"><i class="bi bi-info-circle" aria-hidden="true">&nbsp;</i>Credits</a>
+							<a class="nav-link disabled" href="{{- .URLPathPrefix -}}/credits"><i class="bi bi-info-circle" aria-hidden="true">&nbsp;</i>Credits</a>
 						</li>
 					</ul>
 				</div>
