@@ -14,9 +14,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
-
-	//	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -184,25 +181,13 @@ func main() {
 
 	// Ping handler (who knows, it might be useful in some contexts... such as Let's Encrypt certificates
 	router.Any(path.Join(urlPathPrefix, "/ping"), func(c *gin.Context) {
-		payload := "pong back to "
-		// check if we're behind Cloudflare. Note that HTTP/2 _may_ send everything in lowercase! (gwyneth 20230803)
-		cfHeader := c.GetHeader(gin.PlatformCloudflare)
-		if cfHeader == "" {
-			cfHeader = c.GetHeader(strings.ToLower(gin.PlatformCloudflare))
-		}
-		if cfHeader != "" {
-			payload += cfHeader	// this is CF-Connecting-IP from Cloudflare
-			// same as above (because of HTTP/2)
-			cfIPCountry := c.GetHeader("CF-IPCountry")
-			if cfIPCountry == "" {
-				cfIPCountry = c.GetHeader(strings.ToLower("CF-IPCountry"))
-			}
-			if cfIPCountry != "" {			// this will usually be set by Cloudflare, too
-				payload += "(from " + cfIPCountry + ")"
-			}
-		} else {
-			logme.Debugln("apparently Gin didn't understand that we're behind Cloudflare... getting ClientIP() instead")
-			payload += c.ClientIP()
+		// this will work even behnd Cloudflare (gwyneth 20230804)
+		payload := "pong back to " + c.ClientIP()
+
+		// if we're behind Cloudflare. Note that HTTP/2 _may_ send everything in lowercase! (gwyneth 20230803)
+		cfIPCountry := c.GetHeader("CF-IPCountry")
+		if cfIPCountry != "" {			// this will usually be set by Cloudflare, too
+			payload += " (from " + cfIPCountry + ")"
 		}
 
 		switch getContentType(c) {
@@ -210,8 +195,8 @@ func main() {
 				c.JSON(http.StatusOK, gin.H{"status": "ok", "message": payload})
 			case "text/html":
 				c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
-					"Title"			: http.StatusMethodNotAllowed,
-					"description"	: http.StatusText(http.StatusOK),
+					"Title"			: "Ping results",
+					"description"	: http.StatusText(http.StatusOK) + " " + payload,
 					"Text"			: payload,
 				}))
 			case "text/xml":
@@ -226,7 +211,7 @@ func main() {
 
 	// Main website, as far as we can call it a "website".
 	router.GET(path.Join(urlPathPrefix, "/home"), homepage)
-//	router.GET(urlPathPrefix + string(os.PathSeparator), homepage)
+	router.GET(urlPathPrefix + string(os.PathSeparator), homepage)
 
 	// Shows the credits page.
 	router.GET(path.Join(urlPathPrefix, "/credits"), func(c *gin.Context) {

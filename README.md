@@ -89,7 +89,7 @@ location ~* /StreamDude/templates {
 	try_files $uri =404;
 }
 
-location = /StreamDude/ {
+location /StreamDude/ {
 	proxy_pass_request_headers on;
 	proxy_pass_request_body on;
 	proxy_set_header X-Forwarded-For   $remote_addr;
@@ -104,7 +104,7 @@ location = /StreamDude/ {
 	proxy_read_timeout 5m;
 	proxy_set_header Access-Control-Allow-Credentials true;
 	proxy_set_header Content-Encoding gzip;
-	proxy_pass http://127.0.0.1:3554/;
+	proxy_pass http://127.0.0.1:3554;
 }
 
 location ~* ^.+\.(xml|ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|css|rss|atom|js|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf|lsl|lua)$ {
@@ -113,3 +113,12 @@ location ~* ^.+\.(xml|ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|css|rss|atom|js|jpg|
 		fastcgi_hide_header Set-Cookie;
 }
 ```
+
+and launch StreamDude (n debug mode) with:
+
+```bash
+$ ./StreamDude -d -r rtsp://127.0.0.1:5544/ -u /StreamDude -x my.streaming.server
+```
+Add `-P ":443"` if your front-end server is running HTTPS.
+
+If you're launching StreamDude directly from the root of your virtual host (i.e. no `/StreamDude` subfolder), then you might need to add a trailing slash on `proxy_pass http://127.0.0.1:3554/;`. Getting the slashes to match properly is always messy.
