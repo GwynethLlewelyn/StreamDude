@@ -1,4 +1,4 @@
-{{- define "generic.tpl" -}}
+{{- define "home.tpl" -}}
 {{- template "header.tpl" . -}}
 					<div class="col">
 						{{- if .Title -}}
