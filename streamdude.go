@@ -10,6 +10,7 @@ package main
 
 import (
 	//	"log"
+	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -184,10 +185,9 @@ func main() {
 		// this will work even behnd Cloudflare (gwyneth 20230804)
 		payload := "pong back to " + c.ClientIP()
 
-		// if we're behind Cloudflare. Note that HTTP/2 _may_ send everything in lowercase! (gwyneth 20230803)
 		cfIPCountry := c.GetHeader("CF-IPCountry")
 		if cfIPCountry != "" {			// this will usually be set by Cloudflare, too
-			payload += " (from " + cfIPCountry + ")"
+			payload += "&nbsp;" + getFlag(cfIPCountry)
 		}
 
 		switch getContentType(c) {
