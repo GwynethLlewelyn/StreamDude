@@ -1,0 +1,20 @@
+[Unit]
+Description=StreamDude is a simple playlist manager to remotely send files to a streaming server
+After=syslog.target
+After=network.target
+After=nginx.service
+
+[Service]
+Type=forking
+User=apibt
+Group=client6
+WorkingDirectory=/var/www/my.streaming.server/StreamDude/StreamDude
+ExecStart=/usr/bin/screen -dmS "StreamDude" /var/www/my.streaming.server/StreamDude/StreamDude/StreamDude
+ExecStop=/usr/bin/screen -p 0 -S "StreamDude" -X kill
+Restart=always
+RestartSec=30s
+RemainAfterExit=false
+Environment=USER=stream HOME=/var/www/my.streaming.server/StreamDude/StreamDude
+
+[Install]
+WantedBy=multi-user.target

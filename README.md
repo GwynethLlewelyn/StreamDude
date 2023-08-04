@@ -122,3 +122,7 @@ $ ./StreamDude -d -r rtsp://127.0.0.1:5544/ -u /StreamDude -x my.streaming.serve
 Add `-P ":443"` if your front-end server is running HTTPS.
 
 If you're launching StreamDude directly from the root of your virtual host (i.e. no `/StreamDude` subfolder), then you might need to add a trailing slash on `proxy_pass http://127.0.0.1:3554/;`. Getting the slashes to match properly is always messy.
+
+## Launching from `systemd`
+
+If you're running a Unix version supporting `systemd`, you can grab a [simple unit service file](extras/StreamDude.service.sample) to adapt to your needs.

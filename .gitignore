@@ -44,6 +44,9 @@ package-lock.json
 streamdude
 StreamDude
 
+# Other things that should not go to Git
+*.service
+
 # ---> Go
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
