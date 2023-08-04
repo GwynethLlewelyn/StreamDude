@@ -185,15 +185,16 @@ func main() {
 		// this will work even behnd Cloudflare (gwyneth 20230804)
 		payload := "pong back to " + c.ClientIP()
 
-		cfIPCountry := c.GetHeader("CF-IPCountry")
-		if cfIPCountry != "" {			// this will usually be set by Cloudflare, too
-			payload += "&nbsp;" + getFlag(cfIPCountry)
-		}
-
 		switch getContentType(c) {
 			case "application/json":
 				c.JSON(http.StatusOK, gin.H{"status": "ok", "message": payload})
 			case "text/html":
+				// if we're behind Cloudflare, we can get a cute emoji flag
+				// telling us which country this ping came from! (gwyneth 20230804)
+				cfIPCountry := c.GetHeader("CF-IPCountry")
+				if cfIPCountry != "" {			// this will usually be set by Cloudflare, too
+					payload += "&nbsp;" + getFlag(cfIPCountry)
+				}
 				c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
 					"Title"			: "Ping results",
 					"description"	: http.StatusText(http.StatusOK) + " " + payload,
