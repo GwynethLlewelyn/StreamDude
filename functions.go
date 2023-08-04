@@ -1,3 +1,10 @@
+// Assorted functions that one day really, really should make it into
+// its own package.
+//
+//
+// © 2023 by Gwyneth Llewelyn. All rights reserved.
+// Licensed under a MIT License (see https://gwyneth-llewelyn.mit-license.org/).
+//
 package main
 
 import (

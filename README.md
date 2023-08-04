@@ -35,9 +35,11 @@ Instead, I'm sort of joining three separate projects into one.
 -   `LAL_MASTER_KEY` - because it's too dangerous to keep it in code and/or files
 -   `STREAMER_URL` - another way to override the streamer URL; may be useful in scripts
 
+Also, StreamDude attempts to comply with the informal `CLICOLOR_FORCE` and `NO_COLOR` conventions. See https://bixense.com/clicolors/ and https://no-color.org/.
+
 ## Compile & launch
 
-You can get [here the full API for Postman](assets/StreamDude.postman_collection).
+You can get [here the full API for Postman](extras/StreamDude.postman_collection.json).
 
 Currently, the only streaming server supported is [lal (Live And Live)](https://github.com/q191201771/lal).
 
@@ -114,15 +116,22 @@ location ~* ^.+\.(xml|ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|css|rss|atom|js|jpg|
 }
 ```
 
-and launch StreamDude (n debug mode) with:
+and launch StreamDude (in debug mode) with:
 
 ```bash
 $ ./StreamDude -d -r rtsp://127.0.0.1:5544/ -u /StreamDude -x my.streaming.server
 ```
+
 Add `-P ":443"` if your front-end server is running HTTPS.
 
 If you're launching StreamDude directly from the root of your virtual host (i.e. no `/StreamDude` subfolder), then you might need to add a trailing slash on `proxy_pass http://127.0.0.1:3554/;`. Getting the slashes to match properly is always messy.
 
 ## Launching from `systemd`
 
-If you're running a Unix version supporting `systemd`, you can grab a [simple unit service file](extras/StreamDude.service.sample) to adapt to your needs.
+If you're running a Unix version supporting `systemd`, you can grab a [sample unit service file](extras/StreamDude.service.sample) to adapt to your needs. StreamDude complies with the [`sd_notify`](https://www.man7.org/linux/man-pages/man3/sd_notify.3.html) specifications and tries to play nicely with `systemd`.
+
+Coloured `journald` logs are yet to be implemented, but at least you can get them using `journalctl -u StreamDude -f`.
+
+## Release notes
+
+See [CHANGELOG.md](CHANGELOG.md).

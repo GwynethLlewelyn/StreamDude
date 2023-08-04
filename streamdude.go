@@ -8,6 +8,8 @@
 // `STREAMER_URL` - another way to override the streamer URL; may be useful in scripts
 //
 // © 2023 by Gwyneth Llewelyn. All rights reserved.
+// Licensed under a MIT License (see https://gwyneth-llewelyn.mit-license.org/).
+//
 package main
 
 import (

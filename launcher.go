@@ -1,6 +1,12 @@
 // Deals with the API to launch ffmpeg
-// For now, it works with just a single file
+// For now, it works with just a single file at a time,
+// hopefully, playlists will come soon!
+//
+// © 2023 by Gwyneth Llewelyn. All rights reserved.
+// Licensed under a MIT License (see https://gwyneth-llewelyn.mit-license.org/).
+//
 package main
+
 import (
 	//	"log"
 	"fmt"
