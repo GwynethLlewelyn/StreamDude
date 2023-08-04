@@ -321,3 +321,13 @@ func obfuscate(s string) string {
 	}
 	return slice
 }
+
+// ISO-3166-1 two-letter country codes to-emoji.
+func getFlag(countryCode string) string {
+	// 0x1F1E6 - REGIONAL INDICATOR SYMBOL LETTER A
+	// 0x1F1FF - REGIONAL INDICATOR SYMBOL LETTER Z
+	// 0x0041 — LATIN CAPITAL LETTER A
+	// 0x005A — LATIN CAPITAL LETTER Z
+
+	return string(rune(countryCode[0])+127397) + string(rune(countryCode[1])+127397)
+}
