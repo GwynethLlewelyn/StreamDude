@@ -1,5 +1,7 @@
 // StreamDude
 //
+// Main is here.
+//
 // Environment variables used when launching:
 //
 // `LAL_MASTER_KEY` - because it's too dangerous to keep it in code and/or files
@@ -10,11 +12,15 @@ package main
 
 import (
 	//	"log"
-//	"fmt"
+	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
+	"syscall"
+
+	"github.com/coreos/go-systemd/v22/daemon"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -41,7 +47,8 @@ var (
 	workingDirectory string // workingDirectory is the result of os.Getwd() or "." if that fails.
 	urlPathPrefix string	// URL path prefix
 	lslSignaturePIN string	// what we send from LSL
-	debug bool				// Set to debug level
+	debug bool				// set to debug level
+	activeSystemd bool		// if set, systemd is available (checked on start)
 
 	// use a single instance of Validate, it caches struct info
 	validate *validator.Validate
@@ -54,12 +61,35 @@ var (
 	lalMasterKey string		// too dangerous to show, put into LAL_MASTER_KEY environment
 )
 
+/*
+ *  Ye Olde Maine Starts Here!
+ *  Here Be Dragons
+ *  And Unicorns
+ */
 func main() {
+	// talk to systemd, inform that we're reloading
+	b, err := daemon.SdNotify(false, daemon.SdNotifyReloading)
+	// (false, nil) - notification not supported (i.e. NOTIFY_SOCKET is unset)
+	// (false, err) - notification supported, but failure happened (e.g. error connecting to NOTIFY_SOCKET or while sending data)
+	// (true, nil) - notification supported, data has been sentif
+	switch {
+		case !b && err == nil:
+			// the logging system is not available, either, so we just print out
+			fmt.Println("[WARN] systemd not available")
+			activeSystemd = false
+		case !b && err != nil:
+			fmt.Println("[WARN] systemd answered with error:", err)
+		case b && err == nil:
+			fmt.Println("[INFO] systemd succesfully notified that we're starting")
+		default:
+			fmt.Println("[WARN] unknown/confused systemd status, ignoring")
+	}
+
 	// get the hostname, which is just used once, though
 	hostname, err := os.Hostname()
 	if err != nil {
-		// who cares what the error was...
-		logme.Warningf("system hostname not found (%s), using localhost instead", err)
+		// who cares what the error was... in any case, we don't have the logging system yet:
+		fmt.Printf("[WARN] system hostname not found (%s), using localhost instead\n", err)
 		hostname = "localhost"
 	}
 
@@ -102,6 +132,7 @@ func main() {
 	//	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	logme.Formatter = new(logrus.TextFormatter)
+	logme.Formatter.(*logrus.TextFormatter).ForceColors = activeSystemd	// if systemd is active, force colours on log
 	logme.Formatter.(*logrus.TextFormatter).DisableColors = false		// keep colors
 	logme.Formatter.(*logrus.TextFormatter).DisableTimestamp = false	// keep timestamp
 
@@ -115,17 +146,19 @@ func main() {
 	// respect CLICOLOR_FORCE and NO_COLOR in Gin (logrus is already compliant)
 	// Figure out if we're running in a terminal, and, if so, apply all the relevant commands
 	// See https://bixense.com/clicolors/ and https://no-color.org/ (gwyneth 20230731)
+	// Note: when we're sending logs via journald, we force coloured output, because
+	// journald supports it even if it's not a TTY.
 
 	var isTerm = true	// are we logging to a tty?
 
 	// for the weird type casting, see https://github.com/mattn/go-isatty/issues/80#issuecomment-1470096598 (gwyneth 20230801)
-	if os.Getenv("TERM") == "dumb" ||
+	if os.Getenv("TERM") == "dumb" && !activeSystemd ||
 		(!isatty.IsTerminal(logme.Out.(*os.File).Fd()) && !isatty.IsCygwinTerminal(logme.Out.(*os.File).Fd())) {
 			isTerm = false
 	}
 	if _, ok := os.LookupEnv("NO_COLOR"); ok {
 		gin.DisableConsoleColor()
-	} else if _, ok := os.LookupEnv("CLICOLOR_FORCE"); ok && isTerm {
+	} else if _, ok := os.LookupEnv("CLICOLOR_FORCE"); (ok && isTerm) || activeSystemd {
 		gin.ForceConsoleColor()
 	}
 
@@ -193,7 +226,7 @@ func main() {
 				// telling us which country this ping came from! (gwyneth 20230804)
 				cfIPCountry := c.GetHeader("CF-IPCountry")
 				if cfIPCountry != "" {			// this will usually be set by Cloudflare, too
-					payload += "&nbsp;" + getFlag(cfIPCountry)
+					payload += " " + getFlag(cfIPCountry)
 				}
 				c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
 					"Title"			: "Ping results",
@@ -277,11 +310,81 @@ func main() {
 	})
 
 	/*
+	 *  Deal with Unix system signals (at least those we can catch)
+	 */
+
+	// prepares a special (buffered) channel to look for termination signals.
+	sigs := make(chan os.Signal, 1)
+	// signal.Notify(sigs)	// Note: this should catch all catchable signals!
+	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGCONT)
+
+	// goroutine which listens to signals
+	// Will handle re-configurations in the future.
+	// For now, it exists mostly to signal systemd
+	go func() {
+		for {
+			sig := <-sigs
+			logme.Warningln("Got signal", sig)
+			switch sig {
+				case syscall.SIGUSR1:
+					logme.Infoln("SIGUSR1 received, ignoring")
+				case syscall.SIGUSR2:
+					logme.Infoln("SIGUSR1 received, ignoring")
+				case syscall.SIGHUP:
+					// Note: we *might* interpret this to suspend the processing and/or reload config (gwyneth 202230804)
+					logme.Infoln("SIGHUP received (possibly from systemd): hanging up!")
+					// if we were called by systemd, then notify it that we're done.
+					// if not, just exit normally.
+					daemon.SdNotify(true, daemon.SdNotifyStopping)
+					os.Exit(0)
+				case syscall.SIGCONT:
+					logme.Infoln("SIGCONT received, ignoring")
+				default:
+					// should never happen...?
+					logme.Warning("Unknown UNIX signal", sig, "caught, ignoring")
+			}
+		}
+	}()
+
+	// attempt to talk to systemd to notify we're now ready
+	b, err = daemon.SdNotify(false, daemon.SdNotifyReady)
+	switch {
+		case !b && err == nil:
+			// the logging system is not available, either, so we just print out
+			logme.Warningln("systemd not available")
+			activeSystemd = false
+		case !b && err != nil:
+			logme.Warningln("systemd answered with error:", err)
+		case b && err == nil:
+			logme.Infoln("systemd succesfully notified that we're ready")
+		default:
+			logme.Warningln("unknown/confused systemd status, ignoring")
+	}
+
+	/*
 	 *  Launch the server (finally) and log an error if it crashes.
 	 */
 
 	// this might require another layer to check for https
-	logme.Fatal(router.Run(host + serverPort))
+	err = router.Run(host + serverPort)
+	if err != nil {
+		logme.Fatalln("Gin aborted with", err)
+	}
+
+	// Notify systemd that we're peacefully stopping
+	b, err = daemon.SdNotify(true, daemon.SdNotifyStopping)
+	switch {
+		case !b && err == nil:
+			// the logging system is not available, either, so we just print out
+			logme.Warningln("systemd not available")
+			activeSystemd = false
+		case !b && err != nil:
+			logme.Warningln("systemd answered with error:", err)
+		case b && err == nil:
+			logme.Infoln("systemd succesfully notified that we're stopping")
+		default:
+			logme.Warningln("unknown/confused systemd status, ignoring")
+	}
 }
 
 /*\

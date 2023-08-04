@@ -5,16 +5,16 @@ After=network.target
 After=nginx.service
 
 [Service]
-Type=forking
-User=apibt
-Group=client6
+Type=notify
+User=my.user.name
+Group=my.group.name
 WorkingDirectory=/var/www/my.streaming.server/StreamDude/StreamDude
-ExecStart=/usr/bin/screen -dmS "StreamDude" /var/www/my.streaming.server/StreamDude/StreamDude/StreamDude
-ExecStop=/usr/bin/screen -p 0 -S "StreamDude" -X kill
+ExecStart=/var/www/my.streaming.server/StreamDude/StreamDude/StreamDude -d -r rtsp://127.0.0.1:5544/ -u /StreamDude -x my.streaming.server
 Restart=always
 RestartSec=30s
+TimeoutStopSec=10s
 RemainAfterExit=false
-Environment=USER=stream HOME=/var/www/my.streaming.server/StreamDude/StreamDude
+Environment=USER=my.user.name HOME=/var/www/my.streaming.server/StreamDude/StreamDude
 
 [Install]
 WantedBy=multi-user.target
