@@ -10,7 +10,7 @@ package main
 
 import (
 	//	"log"
-	"fmt"
+//	"fmt"
 	"net/http"
 	"os"
 	"path"
