@@ -14,6 +14,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
+
 	//	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -183,11 +185,20 @@ func main() {
 	// Ping handler (who knows, it might be useful in some contexts... such as Let's Encrypt certificates
 	router.Any(path.Join(urlPathPrefix, "/ping"), func(c *gin.Context) {
 		payload := "pong back to "
-		// check if we're behind Cloudflare
-		if c.GetHeader(gin.PlatformCloudflare) != "" {
-			payload += c.GetHeader(gin.PlatformCloudflare)	// this is CF-Connecting-IP from Cloudflare
-			if c.GetHeader("CF-IPCountry") != "" {			// this will usually be set by Cloudflare, too
-				payload += "(from " + c.GetHeader("CF-IPCountry") + ")"
+		// check if we're behind Cloudflare. Note that HTTP/2 _may_ send everything in lowercase! (gwyneth 20230803)
+		cfHeader := c.GetHeader(gin.PlatformCloudflare)
+		if cfHeader == "" {
+			cfHeader = c.GetHeader(strings.ToLower(gin.PlatformCloudflare))
+		}
+		if cfHeader != "" {
+			payload += cfHeader	// this is CF-Connecting-IP from Cloudflare
+			// same as above (because of HTTP/2)
+			cfIPCountry := c.GetHeader("CF-IPCountry")
+			if cfIPCountry == "" {
+				cfIPCountry = c.GetHeader(strings.ToLower("CF-IPCountry"))
+			}
+			if cfIPCountry != "" {			// this will usually be set by Cloudflare, too
+				payload += "(from " + cfIPCountry + ")"
 			}
 		} else {
 			logme.Debugln("apparently Gin didn't understand that we're behind Cloudflare... getting ClientIP() instead")
@@ -214,28 +225,8 @@ func main() {
 	})
 
 	// Main website, as far as we can call it a "website".
-	router.GET(path.Join(urlPathPrefix, "/home"), func(c *gin.Context) {
-			// Default message for those who do NOT use application/html!
-			homepageMessage := "It works. You should see it in HTML instead, it's so much nicer!"
-
-			switch getContentType(c) {
-				case "application/json":
-					c.JSON(http.StatusNotFound, gin.H{"status": "ok", "message": homepageMessage})
-				case "text/html":
-					c.HTML(http.StatusNotFound, "home.tpl", environment(c, gin.H{
-						"Title"			: "Welcome!",
-						"description"	: "StreamDude demo homepage",
-						"Text"			: "This is StreamDude — nothing will work on the menus, except Ping.",
-					}))
-				case "text/xml":
-				case "application/soap+xml":
-				case "application/xml":
-					c.XML(http.StatusNotFound, gin.H{"status": "ok", "message": homepageMessage})
-				case "text/plain":
-				default:
-					c.String(http.StatusNotFound, homepageMessage)
-			}
-		})
+	router.GET(path.Join(urlPathPrefix, "/home"), homepage)
+//	router.GET(urlPathPrefix + string(os.PathSeparator), homepage)
 
 	// Shows the credits page.
 	router.GET(path.Join(urlPathPrefix, "/credits"), func(c *gin.Context) {
@@ -260,12 +251,12 @@ func main() {
 			case "application/json":
 				c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": errorMessage})
 			case "text/html":
-				c.Redirect(http.StatusMovedPermanently, path.Join(urlPathPrefix, "/home"))
-/* 				c.HTML(http.StatusNotFound, "generic.tpl", environment(c, gin.H{
+//				c.Redirect(http.StatusMovedPermanently, path.Join(urlPathPrefix, "/home"))
+ 				c.HTML(http.StatusNotFound, "generic.tpl", environment(c, gin.H{
 					"Title"			: http.StatusNotFound,
 					"description"	: http.StatusText(http.StatusNotFound),
 					"Text"			: errorMessage,
-				})) */
+				}))
 			case "text/xml":
 			case "application/soap+xml":
 			case "application/xml":
@@ -283,12 +274,12 @@ func main() {
 			case "application/json":
 				c.JSON(http.StatusMethodNotAllowed, gin.H{"status": "error", "message": errorMessage})
 			case "text/html":
-				c.Redirect(http.StatusMovedPermanently, path.Join(urlPathPrefix, "/home"))
-/* 				c.HTML(http.StatusMethodNotAllowed, "generic.tpl", environment(c, gin.H{
+//				c.Redirect(http.StatusMovedPermanently, path.Join(urlPathPrefix, "/home"))
+ 				c.HTML(http.StatusMethodNotAllowed, "generic.tpl", environment(c, gin.H{
 					"Title"			: http.StatusMethodNotAllowed,
 					"description"	: http.StatusText(http.StatusMethodNotAllowed),
 					"Text"			: errorMessage,
-				})) */
+				}))
 			case "text/xml":
 			case "application/soap+xml":
 			case "application/xml":
@@ -305,4 +296,32 @@ func main() {
 
 	// this might require another layer to check for https
 	logme.Fatal(router.Run(host + serverPort))
+}
+
+/*\
+ *  Some handlers called directly here
+ */
+
+// Homepage is the front-end's first page. It might get some authentication at sme point.
+func homepage(c *gin.Context) {
+	// Default message for those who do NOT use application/html!
+	homepageMessage := "It works. You should see it in HTML instead, it's so much nicer!"
+
+	switch getContentType(c) {
+		case "application/json":
+			c.JSON(http.StatusOK, gin.H{"status": "ok", "message": homepageMessage})
+		case "text/html":
+			c.HTML(http.StatusOK, "home.tpl", environment(c, gin.H{
+				"Title"			: "Welcome!",
+				"description"	: "StreamDude demo homepage",
+				"Text"			: "This is StreamDude — nothing will work on the menus, except Ping.",
+			}))
+		case "text/xml":
+		case "application/soap+xml":
+		case "application/xml":
+			c.XML(http.StatusOK, gin.H{"status": "ok", "message": homepageMessage})
+		case "text/plain":
+		default:
+			c.String(http.StatusOK, homepageMessage)
+	}
 }
