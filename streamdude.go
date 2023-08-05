@@ -264,6 +264,22 @@ func main() {
 		apiRoutes.POST("/auth",	apiSimpleAuthGenKey)
 	}
 
+	// Specific routes just for the user interface
+	uiRoutes := router.Group(path.Join(urlPathPrefix, "/ui"))
+	{
+		uiRoutes.GET("/auth", func(c *gin.Context) {
+			// not much to pass really
+			c.HTML(http.StatusOK, "form-auth.tpl", environment(c, gin.H{
+			}))
+		})
+		uiRoutes.GET("/play", func(c *gin.Context) {
+			// not much to pass really
+			c.HTML(http.StatusOK, "form-play.tpl", environment(c, gin.H{
+			}))
+		})
+
+	}
+
 	// Catch all other routes and send back an error
 	router.NoRoute(func(c *gin.Context) {
 		errorMessage := "Command " + c.Request.URL.Path + " not found."

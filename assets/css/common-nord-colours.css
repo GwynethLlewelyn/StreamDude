@@ -1,35 +1,32 @@
 :root {
-  --blue: #88c0d0;      /* nord8 */
-  --indigo: #5e81ac;    /* nord10 */
-  --purple: #b48ead;    /* nord15 */
-  --pink: #b48ead;      /* nord15 */
-  --red: #bf616a;       /* nord11 */
-  --orange: #d08770;    /* nord12 */
-  --yellow: #ebcb8b;    /* nord13 */
-  --green: #a3be8c;     /* nord14 */
-  --teal: #8fbcbb;      /* nord7 */
-  --cyan: #81a1c1;      /* nord9 */
-  --white: #eceff4;     /* nord6 */
-  --gray: #4c566a;      /* nord3 */
-  --gray-dark: #2e3440; /* nord0 */
-  --primary: #88c0d0;   /* --blue */
-  --secondary: #4c566a; /* --gray */
-  --success: #a3be8c;   /* --green */
-  --info: #81a1c1;      /* --cyan */
-  --warning: #ebcb8b;    /* --yellow */
-  --danger: #bf616a;    /* --red */
-  --light: #3b4252;     /* nord1 */
-  --dark: #d8dee9;      /* nord4; was #8c94a4 */
-  --breakpoint-xs: 0;
-  --breakpoint-sm: 576px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 992px;
-  --breakpoint-xl: 1200px;
-  /* Default font used to be Alegreya, although Google's Rubik comes pretty close!
+	--blue: #88c0d0; /* nord8 */
+	--indigo: #5e81ac; /* nord10 */
+	--purple: #b48ead; /* nord15 */
+	--pink: #b48ead; /* nord15 */
+	--red: #bf616a; /* nord11 */
+	--orange: #d08770; /* nord12 */
+	--yellow: #ebcb8b; /* nord13 */
+	--green: #a3be8c; /* nord14 */
+	--teal: #8fbcbb; /* nord7 */
+	--cyan: #81a1c1; /* nord9 */
+	--white: #eceff4; /* nord6 */
+	--gray: #4c566a; /* nord3 */
+	--gray-dark: #2e3440; /* nord0 */
+	--primary: #88c0d0; /* --blue */
+	--secondary: #4c566a; /* --gray */
+	--success: #a3be8c; /* --green */
+	--info: #81a1c1; /* --cyan */
+	--warning: #ebcb8b; /* --yellow */
+	--danger: #bf616a; /* --red */
+	--light: #3b4252; /* nord1 */
+	--dark: #d8dee9; /* nord4; was #8c94a4 */
+	--breakpoint-xs: 0;
+	--breakpoint-sm: 576px;
+	--breakpoint-md: 768px;
+	--breakpoint-lg: 992px;
+	--breakpoint-xl: 1200px;
+	/* Default font used to be Alegreya, although Google's Rubik comes pretty close!
    */
-  --font-family-sans-serif: "Work Sans", Rubik, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-family-monospace: "FiraCode Nerd Font Mono", "Fira Code", SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+	--font-family-sans-serif: "Work Sans", Rubik, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+	--font-family-monospace: "FiraCode Nerd Font Mono", "Fira Code", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }

@@ -84,10 +84,10 @@
 							<a class="nav-link" href="{{- .URLPathPrefix -}}/ping"><i class="bi bi-broadcast-pin" aria-hidden="true"></i>&nbsp;Ping</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" href="{{- .URLPathPrefix -}}/api/auth"><i class="bi bi-person-lock" aria-hidden="true"></i>&nbsp;Authentication</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/auth"><i class="bi bi-person-lock" aria-hidden="true"></i>&nbsp;Authentication</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" href="{{- .URLPathPrefix -}}/api/play"><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Play Stream</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/play"><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Play Stream</a>
 						</li>
 						<!--
 						<li class="nav-item dropdown">
