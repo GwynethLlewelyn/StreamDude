@@ -91,7 +91,8 @@ func streamFile(filename string) error {
 	return nil
 }
 
-// checks if we have received a valid JSON token
+// checks if we have received a valid JSON token.
+// Note: this might be superfluous, since Gin already does validation. (gwyneth 20230806)
 func payloadValidation(c *gin.Context, command *Command) {
 	if debugBody, err := c.Copy().GetRawData(); err == nil {
 		logme.Debugf("POST sent us: %q\n", debugBody)
@@ -187,7 +188,7 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 			c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
 				"Title"			: "PIN Accepted!",
 				"description"	: "Returns a token",
-				"Text"			: "Your token is: " +  token,
+				"Text"			: "Your token is: " + token,
 			}))
 		case binding.MIMEXML:
 		case "application/soap+xml":	// we'll probably ignore this
