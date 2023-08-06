@@ -36,21 +36,21 @@ import (
 // Globals
 
 var (
-	help bool				// if set, show usage
-	ffmpegPath string		// path to ffmpeg executable
-	ginMode *string			// ginMode is `debug` for development, `release` for production.
-	host string				// this host — where StreamDude is running.
-	serverPort string		// port where StreamDude server is listening
-	frontEnd string			// FrontEnd is usually nginx but will probably be ignored later on.
-	externalPort string		// external port if using a reverse proxy
-	externalHost string		// external hostname if using a reverse proxy
-	templatePath string		// where templates are held
-	pathToStaticFiles string // where static assets are stored
-	workingDirectory string // workingDirectory is the result of os.Getwd() or "." if that fails.
-	urlPathPrefix string	// URL path prefix
-	lslSignaturePIN string	// what we send from LSL
-	debug bool				// set to debug level
-	activeSystemd bool		// if set, systemd is available (checked on start)
+	help bool					// if set, show usage
+	ffmpegPath string			// path to ffmpeg executable
+	ginMode *string				// ginMode is `debug` for development, `release` for production.
+	host string					// this host — where StreamDude is running.
+	serverPort string			// port where StreamDude server is listening
+	frontEnd string				// FrontEnd is usually nginx but will probably be ignored later on.
+	externalPort string			// external port if using a reverse proxy
+	externalHost string			// external hostname if using a reverse proxy
+	templatePath string			// where templates are held
+	pathToStaticFiles string	// where static assets are stored
+	workingDirectory string		// workingDirectory is the result of os.Getwd() or "." if that fails.
+	urlPathPrefix string		// URL path prefix
+	lslSignaturePIN string		// what we send from LSL
+	debug bool					// set to debug level
+	activeSystemd bool	= true	// if set, systemd is available (checked on start)
 
 	// use a single instance of Validate, it caches struct info
 	validate *validator.Validate
@@ -82,7 +82,7 @@ func main() {
 		case !b && err != nil:
 			fmt.Println("[WARN] systemd answered with error:", err)
 		case b && err == nil:
-			fmt.Println("[INFO] systemd succesfully notified that we're starting")
+			fmt.Println("[INFO] systemd was succesfully notified that we're starting")
 		default:
 			fmt.Println("[WARN] unknown/confused systemd status, ignoring")
 	}
@@ -130,6 +130,8 @@ func main() {
 	router.SetTrustedProxies([]string{"127.0.0.1"})	// apparently we should at least trust "our" proxy
 	router.TrustedPlatform = gin.PlatformCloudflare	// we're running behind Cloudflare CDN, this will retrieve the correct IP address. Hopefully.
 
+	logme.Infof("is systemd active? - %t\n", activeSystemd)
+
 	// Configure logrus.
 	//	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
@@ -153,6 +155,9 @@ func main() {
 
 	var isTerm = true	// are we logging to a tty?
 
+	logme.Debugf("terminal type: %q activeSystemd: %t NO_COLOR: %q CLICOLOR_FORCE: %q\n",
+		os.Getenv("TERM"), activeSystemd, os.Getenv("NO_COLOR"), os.Getenv("CLICOLOR_FORCE"))
+
 	// for the weird type casting, see https://github.com/mattn/go-isatty/issues/80#issuecomment-1470096598 (gwyneth 20230801)
 	if os.Getenv("TERM") == "dumb" && !activeSystemd ||
 		(!isatty.IsTerminal(logme.Out.(*os.File).Fd()) && !isatty.IsCygwinTerminal(logme.Out.(*os.File).Fd())) {
@@ -163,12 +168,17 @@ func main() {
 	} else if _, ok := os.LookupEnv("CLICOLOR_FORCE"); (ok && isTerm) || activeSystemd {
 		gin.ForceConsoleColor()
 	}
+	logme.Debugf("debugging to terminal? - %t\n", isTerm)
 
 	// Override lal master key from environment.
 	if temp := os.Getenv("LAL_MASTER_KEY"); temp != "" {
 		lalMasterKey = temp
 	}
-	logme.Debugf("lal key (obfuscated): %q\n", obfuscate(lalMasterKey))
+	if lalMasterKey == "" {
+		logme.Warningln("lal master key not found or empty; streaming will probably not work.")
+	} else {
+		logme.Debugf("lal key (obfuscated): %q\n", obfuscate(lalMasterKey))
+	}
 
 	// Override streamer, if env exists.
 	if temp := os.Getenv("STREAMER_URL"); temp != "" {
@@ -283,48 +293,12 @@ func main() {
 	// Catch all other routes and send back an error
 	router.NoRoute(func(c *gin.Context) {
 		errorMessage := "Command " + c.Request.URL.Path + " not found."
-
-		switch getContentType(c) {
-			case "application/json":
-				c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": errorMessage})
-			case "text/html":
-//				c.Redirect(http.StatusMovedPermanently, path.Join(urlPathPrefix, "/home"))
- 				c.HTML(http.StatusNotFound, "generic.tpl", environment(c, gin.H{
-					"Title"			: http.StatusNotFound,
-					"description"	: http.StatusText(http.StatusNotFound),
-					"Text"			: errorMessage,
-				}))
-			case "text/xml":
-			case "application/soap+xml":
-			case "application/xml":
-				c.XML(http.StatusNotFound, gin.H{"status": "error", "message": errorMessage})
-			case "text/plain":
-			default:
-				c.String(http.StatusNotFound, errorMessage)
-		}
+		checkErrReply(c, http.StatusNotFound, errorMessage, fmt.Errorf("(routing error)"))
 	})
 
 	router.NoMethod(func(c *gin.Context) {
 		errorMessage := "Method " + c.Request.Method + " not allowed."
-
-		switch getContentType(c) {
-			case "application/json":
-				c.JSON(http.StatusMethodNotAllowed, gin.H{"status": "error", "message": errorMessage})
-			case "text/html":
-//				c.Redirect(http.StatusMovedPermanently, path.Join(urlPathPrefix, "/home"))
- 				c.HTML(http.StatusMethodNotAllowed, "generic.tpl", environment(c, gin.H{
-					"Title"			: http.StatusMethodNotAllowed,
-					"description"	: http.StatusText(http.StatusMethodNotAllowed),
-					"Text"			: errorMessage,
-				}))
-			case "text/xml":
-			case "application/soap+xml":
-			case "application/xml":
-				c.XML(http.StatusMethodNotAllowed, gin.H{"status": "error", "message": errorMessage})
-			case "text/plain":
-			default:
-				c.String(http.StatusMethodNotAllowed, errorMessage)
-		}
+		checkErrReply(c, http.StatusMethodNotAllowed, errorMessage, fmt.Errorf("(unsupported method)"))
 	})
 
 	/*
@@ -374,7 +348,7 @@ func main() {
 		case !b && err != nil:
 			logme.Warningln("systemd answered with error:", err)
 		case b && err == nil:
-			logme.Infoln("systemd succesfully notified that we're ready")
+			logme.Infoln("systemd was succesfully notified that we're ready")
 		default:
 			logme.Warningln("unknown/confused systemd status, ignoring")
 	}
@@ -399,7 +373,7 @@ func main() {
 		case !b && err != nil:
 			logme.Warningln("systemd answered with error:", err)
 		case b && err == nil:
-			logme.Infoln("systemd succesfully notified that we're stopping")
+			logme.Infoln("systemd was succesfully notified that we're stopping")
 		default:
 			logme.Warningln("unknown/confused systemd status, ignoring")
 	}

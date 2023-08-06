@@ -13,6 +13,7 @@
 										<form class="user" action="{{- .URLPathPrefix -}}/api/auth" method="POST">
 											<div class="form-group">
 												Object PIN: <input type="text" class="form-control form-control-user" id="objectPIN" placeholder="0000">
+												LAL Master Key: <input type="text" class="form-control form-control-user" id="masterKey" placeholder="only you know">
 											</div>
 											<input type="submit" value="Get Your Token!" class="btn btn-primary btn-user btn-block">
 										</form>

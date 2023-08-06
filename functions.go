@@ -41,21 +41,27 @@ func funcName() string {
 func getContentType(c *gin.Context) string {
 	// As per specs, check Accept header first:
 	contentType := c.GetHeader("Accept")
+	a := c.Accepted
+	logme.Debugf("For %q, full range of accepted headers is: %v\n", c.FullPath(), a)
+
 	// for now, we'll just use the _first_ content type in the list.
 	contentType, _, _ = strings.Cut(contentType, ",")
 
-	// No Accept? (e.g. GET). Then check the Content-Type header,
-	// using Gin's built-in function:
-	if contentType == "" {
+	// No Accept, or Accept set to */*? (e.g. GET). Then check the Content-Type header,
+	// using Gin's built-in function.
+	// This _should_ give us a chance to return the same content type as what the
+	// caller requested (e.g. browsers will send )
+	if contentType == "" || contentType == "*/*" {
 		contentType = c.ContentType()
 		// Note that Gin only returns the content type and not the charset etc.
 		// This might require in the future to use strings.Cut() again. (gwyneth 20230803)
 	}
-
-	// Do we accept everythinh? Then pick JSON as default.
-	if contentType == "*/*" {
-		contentType = "application/json"
-	}
+//
+// 	// Do we accept everything? Then pick JSON as default.
+// 	if contentType == "*/*" {
+// 		contentType = "application/json"
+// 		logme.Debugf("For %q, got Accept: */*, so, forcing JSON reply\n", c.FullPath())
+// 	}
 	return contentType
 }
 
@@ -136,30 +142,32 @@ func checkErrReply(c *gin.Context, httpStatus int, errorMessage string, err erro
 		switch contentType {
 			case "application/json":
 				c.JSON(httpStatus,
-					gin.H{"status":" error", "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
+					gin.H{"status":" error", "code": httpStatus, "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
 			case "text/html":
+				statusMessage := fmt.Sprintf("%d %s", httpStatus, http.StatusText(httpStatus))
 				c.HTML(httpStatus, "generic.tpl", environment(c, gin.H{
-					"Title"			: http.StatusMethodNotAllowed,
-					"description"	: http.StatusText(httpStatus),
-					"Text"			: errorMessage,
+					"Title"			: statusMessage,
+					"description"	: statusMessage,
+					"Text"			: errorMessage + ": " + err.Error(),
 				}))
 			case "text/xml":
 			case "application/soap+xml":
 			case "application/xml":
-				c.XML(httpStatus, gin.H{"status": "ok", "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
+				c.XML(httpStatus, gin.H{"status": "error", "code": httpStatus, "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
 			case "text/plain":
 			default:
-				c.String(httpStatus, errorMessage)
+				c.String(httpStatus, errorMessage + ": " + err.Error())
 		}
 
 		pc, file, line, ok := runtime.Caller(1)
 
-		logme.Printf("‹%s› (error %s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", contentType, http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
-		getContentType(c)
+		logme.Errorf("‹%s› (error %s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", contentType, http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
 		if contentType == "application/json" {
-			c.AbortWithStatusJSON(httpStatus, gin.H{"status": "error", "message": err.Error()})
+			c.AbortWithStatusJSON(httpStatus, gin.H{"status": "error", "code": httpStatus, "message": err.Error()})
 		} else {
-			c.AbortWithError(httpStatus, err)
+			if ginErr := c.AbortWithError(httpStatus, err); ginErr != nil {
+				logme.Errorln("Additionally, AbortWithError failed with error:", ginErr)
+			}
 		}
 	}
 }
