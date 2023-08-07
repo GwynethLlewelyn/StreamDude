@@ -42,7 +42,7 @@ func getContentType(c *gin.Context) string {
 	// As per specs, check Accept header first:
 	contentType := c.GetHeader("Accept")
 	a := c.Accepted
-	logme.Debugf("For %q, full range of accepted headers is: %v\n", c.FullPath(), a)
+	logme.Debugf("For %q, full range of accepted headers is: %+v (total entries: %d)\n", c.FullPath(), a, len(a))
 
 	// for now, we'll just use the _first_ content type in the list.
 	contentType, _, _ = strings.Cut(contentType, ",")

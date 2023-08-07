@@ -36,7 +36,7 @@ type Command struct {
 
 // Helper function to actually play a file via ffmpeg
 func streamFile(filename string) error {
-	logme.Debugf("Filename to stream: %q\n", filename)
+	logme.Debugf("Filename to stream: %q; Master key: %q\n", filename, obfuscate(lalMasterKey))
 
 	// ffmpeg params
 	/*
@@ -149,7 +149,10 @@ func apiStreamFile(c *gin.Context) {
 func apiSimpleAuthGenKey(c *gin.Context) {
 	var command Command
 
-	// payloadValidation(c, &command)
+	// payloadValidation(c, &command)	// probably not needed
+
+	// probe into request, for debugging purposes
+	logme.Debugf("Request received with: %+v (%d entries)\n", c.Request.PostForm, len(c.Request.PostForm))
 
 	if err := c.ShouldBind(&command); err != nil {
 		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)

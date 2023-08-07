@@ -159,7 +159,7 @@ func main() {
 		os.Getenv("TERM"), activeSystemd, os.Getenv("NO_COLOR"), os.Getenv("CLICOLOR_FORCE"))
 
 	// for the weird type casting, see https://github.com/mattn/go-isatty/issues/80#issuecomment-1470096598 (gwyneth 20230801)
-	if os.Getenv("TERM") == "dumb" && !activeSystemd ||
+	if (os.Getenv("TERM") == "dumb" || os.Getenv("TERM") == "") && !activeSystemd ||
 		(!isatty.IsTerminal(logme.Out.(*os.File).Fd()) && !isatty.IsCygwinTerminal(logme.Out.(*os.File).Fd())) {
 			isTerm = false
 	}
