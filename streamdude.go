@@ -25,6 +25,7 @@ import (
 	"github.com/coreos/go-systemd/v22/daemon"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 
 	//	"github.com/google/martian/log"
@@ -231,9 +232,11 @@ func main() {
 		payload := "pong back to " + c.ClientIP()
 
 		switch getContentType(c) {
-			case "application/json":
+			case binding.MIMEJSON:
 				c.JSON(http.StatusOK, gin.H{"status": "ok", "message": payload})
-			case "text/html":
+			case binding.MIMEHTML:
+			case binding.MIMEPOSTForm:
+			case binding.MIMEMultipartPOSTForm:
 				// if we're behind Cloudflare, we can get a cute emoji flag
 				// telling us which country this ping came from! (gwyneth 20230804)
 				cfIPCountry := c.GetHeader("CF-IPCountry")
@@ -245,11 +248,11 @@ func main() {
 					"description"	: http.StatusText(http.StatusOK) + " " + payload,
 					"Text"			: payload,
 				}))
-			case "text/xml":
-			case "application/soap+xml":
-			case "application/xml":
+			case binding.MIMEXML:
+			case "application/soap+xml":	// we'll probably ignore this
+			case binding.MIMEXML2:
 				c.XML(http.StatusOK, gin.H{"status": "ok", "message": payload})
-			case "text/plain":
+		case binding.MIMEPlain:
 			default:
 				c.String(http.StatusOK, payload)
 		}
@@ -389,19 +392,21 @@ func homepage(c *gin.Context) {
 	homepageMessage := "It works. You should see it in HTML instead, it's so much nicer!"
 
 	switch getContentType(c) {
-		case "application/json":
+		case binding.MIMEJSON:
 			c.JSON(http.StatusOK, gin.H{"status": "ok", "message": homepageMessage})
-		case "text/html":
+		case binding.MIMEHTML:
+		case binding.MIMEPOSTForm:
+		case binding.MIMEMultipartPOSTForm:
 			c.HTML(http.StatusOK, "home.tpl", environment(c, gin.H{
 				"Title"			: "Welcome!",
 				"description"	: "StreamDude demo homepage",
 				"Text"			: "This is StreamDude — nothing will work on the menus, except Ping.",
 			}))
-		case "text/xml":
-		case "application/soap+xml":
-		case "application/xml":
+		case binding.MIMEXML:
+		case "application/soap+xml":	// we'll probably ignore this
+		case binding.MIMEXML2:
 			c.XML(http.StatusOK, gin.H{"status": "ok", "message": homepageMessage})
-		case "text/plain":
+		case binding.MIMEPlain:
 		default:
 			c.String(http.StatusOK, homepageMessage)
 	}

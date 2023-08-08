@@ -25,6 +25,7 @@ import (
 	"github.com/dchest/uniuri"
 //	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 //	"github.com/sirupsen/logrus"
 )
 
@@ -59,7 +60,7 @@ func getContentType(c *gin.Context) string {
 //
 // 	// Do we accept everything? Then pick JSON as default.
 // 	if contentType == "*/*" {
-// 		contentType = "application/json"
+// 		contentType = binding.MIMEJSON
 // 		logme.Debugf("For %q, got Accept: */*, so, forcing JSON reply\n", c.FullPath())
 // 	}
 	return contentType
@@ -138,23 +139,26 @@ func checkErrJSON(c *gin.Context, httpStatus int, errorMessage string, err error
 // Universal check for errors and reply using the correct content type.
 func checkErrReply(c *gin.Context, httpStatus int, errorMessage string, err error) {
 	if err != nil {
-		contentType := getContentType(c)
+//		contentType := getContentType(c)	// maybe this wasn't a good idea after all...
+		contentType := c.ContentType()
 		switch contentType {
-			case "application/json":
+			case binding.MIMEJSON:
 				c.JSON(httpStatus,
 					gin.H{"status":" error", "code": httpStatus, "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
-			case "text/html":
+			case binding.MIMEHTML:
+			case binding.MIMEPOSTForm:
+			case binding.MIMEMultipartPOSTForm:
 				statusMessage := fmt.Sprintf("%d %s", httpStatus, http.StatusText(httpStatus))
 				c.HTML(httpStatus, "generic.tpl", environment(c, gin.H{
 					"Title"			: statusMessage,
 					"description"	: statusMessage,
 					"Text"			: errorMessage + ": " + err.Error(),
 				}))
-			case "text/xml":
-			case "application/soap+xml":
-			case "application/xml":
+			case binding.MIMEXML:
+			case "application/soap+xml":	// we'll probably ignore this
+			case binding.MIMEXML2:
 				c.XML(httpStatus, gin.H{"status": "error", "code": httpStatus, "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
-			case "text/plain":
+			case binding.MIMEPlain:
 			default:
 				c.String(httpStatus, errorMessage + ": " + err.Error())
 		}
@@ -162,7 +166,7 @@ func checkErrReply(c *gin.Context, httpStatus int, errorMessage string, err erro
 		pc, file, line, ok := runtime.Caller(1)
 
 		logme.Errorf("‹%s› (error %s) on %s:%d [PC: %v] (%t) - %s ▶ %s ▶ %s\n", contentType, http.StatusText(httpStatus), filepath.Base(file), line, pc, ok, runtime.FuncForPC(pc).Name(), errorMessage, err)
-		if contentType == "application/json" {
+		if contentType == binding.MIMEJSON {
 			c.AbortWithStatusJSON(httpStatus, gin.H{"status": "error", "code": httpStatus, "message": err.Error()})
 		} else {
 			if ginErr := c.AbortWithError(httpStatus, err); ginErr != nil {

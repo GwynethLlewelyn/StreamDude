@@ -25,13 +25,13 @@ import (
 
 // Command JSON type
 type Command struct {
-	AvatarID string		`validate:"omitempty,uuid" xml:"avatarID" json:"avatarID" form:"avatarID"`
-	AvatarName string	`validate:"omitempty,alphanum" xml:"avatarName" json:"avatarName" form:"avatarName"`
-	ObjectPIN string	`validate:"omitempty,number" xml:"objectPIN" json:"objectPIN" form:"objectPIN"`	// 4-digit PIN from in-world object
-	Token string		`validate:"omitempty,base64" xml:"token" json:"token" form:"token"`				// made-up token for whatever reason
-	SessionID string	`validate:"omitempty,hexadecimal" xml:"sessionID" json:"sessionID" form:"sessionID"`		// returned on valid transaction
-	Filename string		`validate:"omitempty,filepath" xml:"filename" json:"filename" form:"filename"`
-	MasterKey string	`validate:"omitempty,alphanum" xml:"masterKey" json:"masterKey" form:"masterKey"`	// LAL Master Key
+	AvatarID string		`validate:"omitempty,uuid" xml:"avatarID" json:"avatarID" form:"avatarID" binding:"-"`
+	AvatarName string	`validate:"omitempty,alphanum" xml:"avatarName" json:"avatarName" form:"avatarName" binding:"-"`
+	ObjectPIN string	`validate:"omitempty,number" xml:"objectPIN" json:"objectPIN" form:"objectPIN" binding:"-"`	// 4-digit PIN from in-world object
+	Token string		`validate:"omitempty,base64" xml:"token" json:"token" form:"token" binding:"-"`				// made-up token for whatever reason
+	SessionID string	`validate:"omitempty,hexadecimal" xml:"sessionID" json:"sessionID" form:"sessionID" binding:"-"`		// returned on valid transaction
+	Filename string		`validate:"omitempty,filepath" xml:"filename" json:"filename" form:"filename" binding:"-"`
+	MasterKey string	`validate:"omitempty,alphanum" xml:"masterKey" json:"masterKey" form:"masterKey" binding:"-"`	// LAL Master Key
 }
 
 // Helper function to actually play a file via ffmpeg
@@ -150,14 +150,18 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 	var command Command
 
 	// payloadValidation(c, &command)	// probably not needed
+	contentType := c.ContentType()
+
+	// weirdly, forms are an exception?
 
 	// probe into request, for debugging purposes
-	logme.Debugf("Request received with: %+v (%d entries)\n", c.Request.PostForm, len(c.Request.PostForm))
+	logme.Debugf("Request received with Content-Type: %q\n", contentType)
 
 	if err := c.ShouldBind(&command); err != nil {
 		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
 		return
 	}
+
 	logme.Debugf("Bound command: %+v\n", command)
 
 	pin, err := strconv.Atoi(command.ObjectPIN)
@@ -179,7 +183,7 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 
 	// For now, we just return the bare-bones token, after checking *how* to
 	// return it, depending on the Content-Type of the request:
-	contentType := getContentType(c)
+	// contentType := getContentType(c)
 	switch contentType {
 		case binding.MIMEJSON:
 			c.JSON(http.StatusOK, gin.H{
@@ -188,6 +192,8 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 				"token": token,
 			})
 		case binding.MIMEHTML:
+		case binding.MIMEPOSTForm:
+		case binding.MIMEMultipartPOSTForm:
 			c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
 				"Title"			: "PIN Accepted!",
 				"description"	: "Returns a token",

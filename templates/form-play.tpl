@@ -12,8 +12,12 @@
 										</div>
 										<form class="user" action="{{- .URLPathPrefix -}}/api/play" method="POST">
 											<div class="form-group">
-												Token: <input type="text" class="form-control form-control-user" id="token" placeholder="Enter your token here">
-												Filename: <input type="text" class="form-control form-control-user" id="filename" placeholder="streaming-file.mp4">
+												<label for="token">Token received during authentication:</label>
+												<input type="text" class="form-control form-control-user" id="token" placeholder="Enter your token here"><br>
+												<label for="filename">Enter a file name to play on the server:</label>
+												<input type="text" class="form-control form-control-user" id="filename" placeholder="streaming-file.mp4"><br>
+												<label for="masterKey">Master key for your LAL server:</label>
+												<input type="text" class="form-control form-control-user" id="masterKey" placeholder="only-you-know"><br>
 											</div>
 											<input type="submit" value="Play" class="btn btn-primary btn-user btn-block">
 										</form>
