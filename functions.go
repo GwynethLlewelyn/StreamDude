@@ -40,10 +40,11 @@ func funcName() string {
 // getContentType parses the Accept and Content-Type headers to figure out
 // what content type to use.
 func getContentType(c *gin.Context) string {
+	cTemp := c.Copy()
 	// As per specs, check Accept header first:
-	contentType := c.GetHeader("Accept")
-	a := c.Accepted
-	logme.Debugf("For %q, full range of accepted headers is: %+v (total entries: %d)\n", c.FullPath(), a, len(a))
+	contentType := cTemp.GetHeader("Accept")
+	a := cTemp.Accepted
+	logme.Debugf("For %q, full range of accepted headers is: %+v (total entries: %d)\n", cTemp.FullPath(), a, len(a))
 
 	// for now, we'll just use the _first_ content type in the list.
 	contentType, _, _ = strings.Cut(contentType, ",")
@@ -53,7 +54,7 @@ func getContentType(c *gin.Context) string {
 	// This _should_ give us a chance to return the same content type as what the
 	// caller requested (e.g. browsers will send )
 	if contentType == "" || contentType == "*/*" {
-		contentType = c.ContentType()
+		contentType = cTemp.ContentType()
 		// Note that Gin only returns the content type and not the charset etc.
 		// This might require in the future to use strings.Cut() again. (gwyneth 20230803)
 	}
@@ -140,25 +141,22 @@ func checkErrJSON(c *gin.Context, httpStatus int, errorMessage string, err error
 func checkErrReply(c *gin.Context, httpStatus int, errorMessage string, err error) {
 	if err != nil {
 //		contentType := getContentType(c)	// maybe this wasn't a good idea after all...
-		contentType := c.ContentType()
+		contentType := c.Copy().ContentType()
 		switch contentType {
 			case binding.MIMEJSON:
 				c.JSON(httpStatus,
 					gin.H{"status":" error", "code": httpStatus, "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
-			case binding.MIMEHTML:
-			case binding.MIMEPOSTForm:
-			case binding.MIMEMultipartPOSTForm:
+			case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
 				statusMessage := fmt.Sprintf("%d %s", httpStatus, http.StatusText(httpStatus))
 				c.HTML(httpStatus, "generic.tpl", environment(c, gin.H{
 					"Title"			: statusMessage,
 					"description"	: statusMessage,
 					"Text"			: errorMessage + ": " + err.Error(),
 				}))
-			case binding.MIMEXML:
-			case "application/soap+xml":	// we'll probably ignore this
-			case binding.MIMEXML2:
+			case binding.MIMEXML, "application/soap+xml", binding.MIMEXML2:
 				c.XML(httpStatus, gin.H{"status": "error", "code": httpStatus, "message": fmt.Sprintf("%q: \"%v\"", errorMessage, err)})
 			case binding.MIMEPlain:
+				fallthrough
 			default:
 				c.String(httpStatus, errorMessage + ": " + err.Error())
 		}
@@ -183,11 +181,21 @@ func expandPath(path string) (string, error) {
 		return path, nil
 	}
 
-	usr, err := user.Current()
+	// we have two cases. The simplest one is the current user:
+	if path[1] == '/' {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(usr.HomeDir, path[1:]), nil
+	}
+	// cut everything to the first slash
+	username, restOfPath, _ := strings.Cut(path[1:], "/")
+	usr, err := user.Lookup(username)
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(usr.HomeDir, path[1:]), nil
+	return filepath.Join(usr.HomeDir, restOfPath), nil
 }
 
 /**

@@ -25,7 +25,7 @@ import (
 	"github.com/coreos/go-systemd/v22/daemon"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
+//	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 
 	//	"github.com/google/martian/log"
@@ -88,7 +88,11 @@ func main() {
 			fmt.Println("[WARN] unknown/confused systemd status, ignoring")
 	}
 
-	// get the hostname, which is just used once, though
+	// Note: postponing some of the error logging until we know if the terminal is set and
+	// handle colours etc. The above are "emergency" messages that need to be sent out before
+	// the logging system is configured (namely, the first action should be) (gwyneth 20230807)
+
+	// get the hostname, which is just used once, though (can be overriden with command-line arguments)
 	hostname, err := os.Hostname()
 	if err != nil {
 		// who cares what the error was... in any case, we don't have the logging system yet:
@@ -121,7 +125,6 @@ func main() {
 
 	// setup a single instance of the validator service.
 	validate = validator.New()
-
 	/**
 	 * Starting backend web server using Gin Gonic.
 	 */
@@ -130,8 +133,6 @@ func main() {
 	// router.SetTrustedProxies(nil)	// as per https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies (gwyneth 20220111).
 	router.SetTrustedProxies([]string{"127.0.0.1"})	// apparently we should at least trust "our" proxy
 	router.TrustedPlatform = gin.PlatformCloudflare	// we're running behind Cloudflare CDN, this will retrieve the correct IP address. Hopefully.
-
-	logme.Infof("is systemd active? - %t\n", activeSystemd)
 
 	// Configure logrus.
 	//	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -145,8 +146,6 @@ func main() {
 	if (debug) {
 		logme.SetLevel(logrus.DebugLevel)
 	}
-	// logme.Debugf("Output descriptor: %+v\n", logme.Out)
-	logme.Debugf("Logging debug level set to %q\n", logme.GetLevel().String())
 
 	// respect CLICOLOR_FORCE and NO_COLOR in Gin (logrus is already compliant)
 	// Figure out if we're running in a terminal, and, if so, apply all the relevant commands
@@ -170,6 +169,9 @@ func main() {
 		gin.ForceConsoleColor()
 	}
 	logme.Debugf("debugging to terminal? - %t\n", isTerm)
+	// at this stage we have the logging output well configured
+	logme.Debugf("Logging debug level set to %q\n", logme.GetLevel().String())
+
 
 	// Override lal master key from environment.
 	if temp := os.Getenv("LAL_MASTER_KEY"); temp != "" {
@@ -226,51 +228,19 @@ func main() {
 	router.RedirectTrailingSlash = true
 	router.RedirectFixedPath = true
 
-	// Ping handler (who knows, it might be useful in some contexts... such as Let's Encrypt certificates
-	router.Any(path.Join(urlPathPrefix, "/ping"), func(c *gin.Context) {
-		// this will work even behnd Cloudflare (gwyneth 20230804)
-		payload := "pong back to " + c.ClientIP()
+	// Generic funcionality
 
-		switch getContentType(c) {
-			case binding.MIMEJSON:
-				c.JSON(http.StatusOK, gin.H{"status": "ok", "message": payload})
-			case binding.MIMEHTML:
-			case binding.MIMEPOSTForm:
-			case binding.MIMEMultipartPOSTForm:
-				// if we're behind Cloudflare, we can get a cute emoji flag
-				// telling us which country this ping came from! (gwyneth 20230804)
-				cfIPCountry := c.GetHeader("CF-IPCountry")
-				if cfIPCountry != "" {			// this will usually be set by Cloudflare, too
-					payload += " " + getFlag(cfIPCountry)
-				}
-				c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
-					"Title"			: "Ping results",
-					"description"	: http.StatusText(http.StatusOK) + " " + payload,
-					"Text"			: payload,
-				}))
-			case binding.MIMEXML:
-			case "application/soap+xml":	// we'll probably ignore this
-			case binding.MIMEXML2:
-				c.XML(http.StatusOK, gin.H{"status": "ok", "message": payload})
-		case binding.MIMEPlain:
-			default:
-				c.String(http.StatusOK, payload)
-		}
-	})
+	// Ping handler (who knows, it might be useful in some contexts... such as Let's Encrypt certificates
+	router.Any(path.Join(urlPathPrefix, "/ping"),			uiPing)
 
 	// Main website, as far as we can call it a "website".
-	router.GET(path.Join(urlPathPrefix, "/home"), homepage)
-	router.GET(urlPathPrefix + string(os.PathSeparator), homepage)
+	router.GET(path.Join(urlPathPrefix, "/home"), 			homepage)
+	router.GET(urlPathPrefix + string(os.PathSeparator),	homepage)
 
 	// Shows the credits page.
-	router.GET(path.Join(urlPathPrefix, "/credits"), func(c *gin.Context) {
-		c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
-			"Title"			: "Credits",
-			"description"	: "Credits",
-			"Text"			: "One day, we will credit here everybody."		}))
-	})
+	router.GET(path.Join(urlPathPrefix, "/credits"),		uiCredits)
 
-	// Lower-leval API for calling things
+	// Lower-leval API for calling things (mostly non-tty low-level calls)
 	apiRoutes := router.Group(path.Join(urlPathPrefix, "/api"))
 	{		// base page for complex scripts.
 		apiRoutes.POST("/play",	apiStreamFile)
@@ -300,7 +270,7 @@ func main() {
 	})
 
 	router.NoMethod(func(c *gin.Context) {
-		errorMessage := "Method " + c.Request.Method + " not allowed."
+		errorMessage := "Method " + c.Request.Method + " not allowed"
 		checkErrReply(c, http.StatusMethodNotAllowed, errorMessage, fmt.Errorf("(unsupported method)"))
 	})
 
@@ -379,35 +349,5 @@ func main() {
 			logme.Infoln("systemd was succesfully notified that we're stopping")
 		default:
 			logme.Warningln("unknown/confused systemd status, ignoring")
-	}
-}
-
-/*\
- *  Some handlers called directly here
- */
-
-// Homepage is the front-end's first page. It might get some authentication at sme point.
-func homepage(c *gin.Context) {
-	// Default message for those who do NOT use application/html!
-	homepageMessage := "It works. You should see it in HTML instead, it's so much nicer!"
-
-	switch getContentType(c) {
-		case binding.MIMEJSON:
-			c.JSON(http.StatusOK, gin.H{"status": "ok", "message": homepageMessage})
-		case binding.MIMEHTML:
-		case binding.MIMEPOSTForm:
-		case binding.MIMEMultipartPOSTForm:
-			c.HTML(http.StatusOK, "home.tpl", environment(c, gin.H{
-				"Title"			: "Welcome!",
-				"description"	: "StreamDude demo homepage",
-				"Text"			: "This is StreamDude — nothing will work on the menus, except Ping.",
-			}))
-		case binding.MIMEXML:
-		case "application/soap+xml":	// we'll probably ignore this
-		case binding.MIMEXML2:
-			c.XML(http.StatusOK, gin.H{"status": "ok", "message": homepageMessage})
-		case binding.MIMEPlain:
-		default:
-			c.String(http.StatusOK, homepageMessage)
 	}
 }

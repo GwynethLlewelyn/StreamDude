@@ -4,23 +4,24 @@
 //
 // © 2023 by Gwyneth Llewelyn. All rights reserved.
 // Licensed under a MIT License (see https://gwyneth-llewelyn.mit-license.org/).
-//
 package main
 
 import (
 	//	"log"
 	"fmt"
-	"path/filepath"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-//	"github.com/go-playground/validator/v10"
-//	"github.com/sirupsen/logrus"
+	// "google.golang.org/genproto/googleapis/devtools/resultstore/v2"
+	// "github.com/go-playground/validator/v10"
+	// "github.com/sirupsen/logrus"
 )
 
 // Command JSON type
@@ -43,12 +44,6 @@ func streamFile(filename string) error {
 	-re -stream_loop -1 -i /var/www/clients/client6/web14/home/betafiles/data/beta-technologies/Universidade de Aveiro/LOCUS Project in Amiais/Panels SL/Painel_Preparativos/Preparativos.mp4 -acodec copy -vcodec copy -f rtsp -muxdelay 0.1 -rtsp_transport tcp rtsp://127.0.0.1:5544/Preparativos.mp4?lal_secret=0126471190816174f602a1e4b3cbd7b6
 	*/
 
-/* 	// Probably Gin does it all
-	if err := validate.Var(filename, "required,file"); err != nil {
-		logme.Errorf("cannot find/open file at %q: %q\n", filename, err)
-		return err
-	} */
-
 	// for lal server: calculate the simple hash allowing execution.
 	// TODO(gwyneth): deal with the way it works for other streaming services,
 	// where it is more customary to send login/password OOB. (gwyneth 20230803)
@@ -56,7 +51,7 @@ func streamFile(filename string) error {
 	calcHash := getMD5Hash(lalMasterKey + basename)
 	cmdURL, err := url.JoinPath(streamerURL, basename)
 	if err != nil {
-		logme.Errorf("Could not create a proper URL from %q: %q\n", filename, err)
+		logme.Errorf("❌ Could not create a proper URL from %q: %q\n", filename, err)
 		return err
 	}
 	cmdURL += "?lal_secret=" + calcHash
@@ -75,14 +70,14 @@ func streamFile(filename string) error {
 		// launch ffmpeg, but don't wait for it.
 		err := cmd.Start()
 		if err != nil {
-			logme.Errorf("could not start %s, error was: %s\n", ffmpegPath, err)
+			logme.Errorf("❌ could not start %s, error was: %s\n", ffmpegPath, err)
 			runtime.Goexit()
 		}
 		logme.Infof("waiting for command to finish...")
 		runtime.Gosched()	// we are waiting, so we yield CPU to other goroutines.
 		err = cmd.Wait()
 		if err != nil {
-			logme.Errorf("command finished with error: %v\n", err)
+			logme.Errorf("❌ command finished with error: %v\n", err)
 			runtime.Goexit()
 		}
 		logme.Infof("✅ %s %s terminated with success\n", ffmpegPath, filename)
@@ -91,45 +86,23 @@ func streamFile(filename string) error {
 	return nil
 }
 
-// checks if we have received a valid JSON token.
-// Note: this might be superfluous, since Gin already does validation. (gwyneth 20230806)
-func payloadValidation(c *gin.Context, command *Command) {
-	if debugBody, err := c.Copy().GetRawData(); err == nil {
-		logme.Debugf("POST sent us: %q\n", debugBody)
-	} else {
-		logme.Debugf("Empty POST body! Error was: %v\n", err)
-	}
-
-	checkErrReply(c, http.StatusBadRequest, "invalid request, no valid body found",
-		c.ShouldBind(command))
-
-	logme.Debugf("Command to parse: %+v (should be JSON-ish)\n", command)
-
-/* 	// Note: Probably not needed, Gin does it all
-
-	// do some sanitation (Note: ShouldBind already does that)
-	// returns nil or ValidationErrors ( []FieldError )
-	if err := validate.Struct(command); err != nil {
-		checkErrReply(c, http.StatusBadRequest, "invalid request; could not validate body",
-			err)
-	} */
-}
 
 /*
- *  Router function
+ *  Router functions
  */
 
 // Handles /play, body contains JSON-encoded filename etc.
 func apiStreamFile(c *gin.Context) {
 	var command Command
+	var err error	// for scope issues on calls with multiple return params
+	contentType := c.Copy().ContentType()
 
-	if err := c.ShouldBind(&command); err != nil {
+	if err = c.ShouldBind(&command); err != nil {
 		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
 		return
 	}
 	logme.Debugf("Bound command: %+v\n", command)
 
-//	payloadValidation(c, &command)
 	if command.Token == "" {
 		checkErrReply(c, http.StatusUnauthorized, "no valid token sent", fmt.Errorf("no valid token sent"))
 		return
@@ -139,30 +112,110 @@ func apiStreamFile(c *gin.Context) {
 		checkErrReply(c, http.StatusBadRequest, "no valid token sent", fmt.Errorf("empty filename, cannot proceed"))
 		return
 	}
+	// attempt to expand tilde (~) to user's home directory
+	if command.Filename, err = expandPath(command.Filename); err != nil {
+		checkErrReply(c, http.StatusBadRequest, "filename with ~ not properly expanded to existing file", err)
+		return
+	}
+	// does the file exist?
+	if _, err := os.Stat(command.Filename); err != nil {
+		checkErrReply(c, http.StatusNotFound, fmt.Sprintf("filename %q for streaming not found", command.Filename),
+		err)
+	}
+	// we should be good to go now!
+	resultError := streamFile(command.Filename)
 
-	checkErrReply(c, http.StatusNotFound, fmt.Sprintf("filename %q for streaming not found", command.Filename),
-		streamFile(command.Filename))
+	checkErrReply(c, http.StatusNotFound, fmt.Sprintf("could not stream %q", command.Filename), resultError)
+	if resultError != nil {
+		switch contentType {
+			case binding.MIMEJSON:
+				c.JSON(http.StatusBadRequest, gin.H{
+					"status": "error",
+					"message": "Error streaming " + command.Filename + ": " + err.Error(),
+				})
+			case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
+				c.HTML(http.StatusBadRequest, "generic.tpl", environment(c, gin.H{
+					"Title"			: "Error during stream",
+					"description"	: "The file failed to stream",
+					"Text"			: "Error streaming " + command.Filename + ": " + err.Error(),
+				}))
+			case binding.MIMEXML, "application/soap+xml", binding.MIMEXML2:
+				c.XML(http.StatusBadRequest, gin.H{
+						"status": "error",
+						"message": "Error streaming " + command.Filename + ": " + err.Error(),
+					})
+			case binding.MIMEPlain:
+				fallthrough
+			default:
+				// minimalistic output, good for embedding
+				c.String(http.StatusBadRequest, command.Filename + " successfully streamed")
+		}
+		return
+	}
+
+	switch contentType {
+		case binding.MIMEJSON:
+			c.JSON(http.StatusOK, gin.H{
+				"status": "ok",
+				"message": command.Filename + " successfully streamed",
+			})
+		case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
+			c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
+				"Title"			: "File successfully streamed!",
+				"description"	: "The file has been successfully streamed",
+				"Text"			: command.Filename + " was successfully streamed!",
+			}))
+		case binding.MIMEXML, "application/soap+xml", binding.MIMEXML2:
+			c.XML(http.StatusOK, gin.H{
+					"status": "ok",
+					"message": command.Filename + " successfully streamed",
+				})
+		case binding.MIMEPlain:
+			fallthrough
+		default:
+			// minimalistic output, good for embedding
+			c.String(http.StatusOK, command.Filename + " successfully streamed")
+	}
 }
 
 // Handles /auth, gets the object PIN and returns a token.
 // TODO(gwyneth): It's all fake for now.
 func apiSimpleAuthGenKey(c *gin.Context) {
+/* 	type CommandSimple struct {
+		ObjectPIN string	`validate:"number" xml:"objectPIN" json:"objectPIN" form:"objectPIN" binding:"required"`	// 4-digit PIN from in-world object
+		MasterKey string	`validate:"alphanum" xml:"masterKey" json:"masterKey" form:"masterKey" binding:"required"`	// LAL Master Key
+	}
+
+	var command CommandSimple */
 	var command Command
 
-	// payloadValidation(c, &command)	// probably not needed
-	contentType := c.ContentType()
+	contentType := c.Copy().ContentType()
 
 	// weirdly, forms are an exception?
 
 	// probe into request, for debugging purposes
 	logme.Debugf("Request received with Content-Type: %q\n", contentType)
 
-	if err := c.ShouldBind(&command); err != nil {
-		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
-		return
-	}
+	/* if contentType == binding.MIMEPOSTForm || contentType == binding.MIMEMultipartPOSTForm {
+		// command.ObjectPIN = c.Copy().Request.FormValue("objectPIN")
+		// command.MasterKey = c.Copy().Request.FormValue("masterKey")
+		if err := c.ShouldBindWith(&command, binding.Query); err == nil {
+			logme.Debugf("HTML form received (%q). Assigning objectID to %q and masterKey to %q\n",
+				contentType, command.ObjectPIN, command.MasterKey)
+		} else {
+			logme.Warningf("could not bind form using ShouldBindWith(&command, binding.Query); error was: %q\n;", err)
+		}
+	} else { */
+		if err := c.ShouldBind(&command); err != nil {
+			logme.Warningf("could not bind form using ShouldBind(&command); error was: %q\n;", err)
+
+			checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
+			return
+		}
+	//}
 
 	logme.Debugf("Bound command: %+v\n", command)
+
 
 	pin, err := strconv.Atoi(command.ObjectPIN)
 	checkErrReply(c, http.StatusBadRequest, "invalid request: invalid or empty PIN", err)
@@ -191,23 +244,20 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 				"message": "PIN accepted, token follows",
 				"token": token,
 			})
-		case binding.MIMEHTML:
-		case binding.MIMEPOSTForm:
-		case binding.MIMEMultipartPOSTForm:
+		case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
 			c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
 				"Title"			: "PIN Accepted!",
 				"description"	: "Returns a token",
 				"Text"			: "Your token is: " + token,
 			}))
-		case binding.MIMEXML:
-		case "application/soap+xml":	// we'll probably ignore this
-		case binding.MIMEXML2:
+		case binding.MIMEXML, "application/soap+xml", binding.MIMEXML2:
 			c.XML(http.StatusOK, gin.H{
 					"status": "ok",
 					"message": "PIN accepted, token follows",
 					"token": token,
 				})
 		case binding.MIMEPlain:
+			fallthrough
 		default:
 			// minimalistic output, good for embedding
 			c.String(http.StatusOK, token)
