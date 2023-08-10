@@ -26,13 +26,24 @@ import (
 
 // Command JSON type
 type Command struct {
-	AvatarID string		`validate:"omitempty,uuid" xml:"avatarID" json:"avatarID" form:"avatarID" binding:"-"`
+	// UUID for the avatar making the request
+	AvatarKey string	`validate:"omitempty,uuid" xml:"avatarKey" json:"avatarKey" form:"avatarKey" binding:"-"`
+	// Avatar name making the streaming request
 	AvatarName string	`validate:"omitempty,alphanum" xml:"avatarName" json:"avatarName" form:"avatarName" binding:"-"`
-	ObjectPIN string	`validate:"omitempty,number" xml:"objectPIN" json:"objectPIN" form:"objectPIN" binding:"-"`	// 4-digit PIN from in-world object
-	Token string		`validate:"omitempty,base64" xml:"token" json:"token" form:"token" binding:"-"`				// made-up token for whatever reason
-	SessionID string	`validate:"omitempty,hexadecimal" xml:"sessionID" json:"sessionID" form:"sessionID" binding:"-"`		// returned on valid transaction
+	// 4-digit PIN from in-world object
+	ObjectPIN string	`validate:"omitempty,number" xml:"objectPIN" json:"objectPIN" form:"objectPIN" binding:"-"`
+	// UUID of the Second Life®/Opensimulator object making the request (comes from the headers)
+	ObjectKey string	`validate:"omitempty,uuid" xml:"objectKey" json:"objectKey" form:"objectKey" binding:"-"`
+	// Name of the object making the request
+	ObjectName string	`validate:"omitempty,alphanum" xml:"objectName" json:"objectName" form:"objectName" binding:"-"`
+	// Made-up token for whatever reason.
+	Token string		`validate:"omitempty,base64" xml:"token" json:"token" form:"token" binding:"-"`
+	// ID returned on valid transaction
+	SessionID string	`validate:"omitempty,hexadecimal" xml:"sessionID" json:"sessionID" form:"sessionID" binding:"-"`
+	// Filename to stream (must be a locally-existing file).
 	Filename string		`validate:"omitempty,filepath" xml:"filename" json:"filename" form:"filename" binding:"-"`
-	MasterKey string	`validate:"omitempty,alphanum" xml:"masterKey" json:"masterKey" form:"masterKey" binding:"-"`	// LAL Master Key
+	// LAL Master Key
+	MasterKey string	`validate:"omitempty,alphanum" xml:"masterKey" json:"masterKey" form:"masterKey" binding:"-"`
 }
 
 // Helper function to actually play a file via ffmpeg
@@ -101,7 +112,18 @@ func apiStreamFile(c *gin.Context) {
 		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
 		return
 	}
+
+	// add headers from Second Life®/OpenSimulator:
+	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")
+	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")
+	command.ObjectKey	= c.GetHeader("X-SecondLife-Object-Key")
+	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
+
+	// we should now be able to do some validation on those
+
 	logme.Debugf("Bound command: %+v\n", command)
+
+
 
 	if command.Token == "" {
 		checkErrReply(c, http.StatusUnauthorized, "no valid token sent", fmt.Errorf("no valid token sent"))

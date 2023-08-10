@@ -331,10 +331,7 @@ func main() {
 	 */
 
 	// this might require another layer to check for https
-	err = router.Run(host + serverPort)
-	if err != nil {
-		logme.Fatalln("Gin aborted with", err)
-	}
+	errGin := router.Run(host + serverPort)
 
 	// Notify systemd that we're peacefully stopping
 	b, err = daemon.SdNotify(true, daemon.SdNotifyStopping)
@@ -349,5 +346,8 @@ func main() {
 			logme.Infoln("systemd was succesfully notified that we're stopping")
 		default:
 			logme.Warningln("unknown/confused systemd status, ignoring")
+	}
+	if errGin != nil {
+		logme.Fatalln("Gin aborted with", errGin)
 	}
 }
