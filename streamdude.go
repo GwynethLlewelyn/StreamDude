@@ -289,19 +289,20 @@ func main() {
 	go func() {
 		for {
 			sig := <-sigs
-			logme.Warningln("Got signal", sig)
 			switch sig {
 				case syscall.SIGUSR1:
-					logme.Infoln("SIGUSR1 received, ignoring")
+					daemon.SdNotify(false, daemon.SdNotifyReloading + "\nSTATUS=reloading request received, but config reload is not supported yet")
+					logme.Infoln("SIGUSR1 received, ignoring; we might reload config one day")
+					daemon.SdNotify(false, daemon.SdNotifyReady)
 				case syscall.SIGUSR2:
-					logme.Infoln("SIGUSR1 received, ignoring")
+					logme.Infoln("SIGUSR2 received, ignoring")
 				case syscall.SIGHUP:
 					// Note: we *might* interpret this to suspend the processing and/or reload config (gwyneth 202230804)
 					logme.Infoln("SIGHUP received (possibly from systemd): hanging up!")
 					// if we were called by systemd, then notify it that we're done.
 					// if not, just exit normally.
 					daemon.SdNotify(true, daemon.SdNotifyStopping)
-					os.Exit(0)
+					os.Exit(129)
 				case syscall.SIGCONT:
 					logme.Infoln("SIGCONT received, ignoring")
 				default:
@@ -334,7 +335,7 @@ func main() {
 	errGin := router.Run(host + serverPort)
 
 	// Notify systemd that we're peacefully stopping
-	b, err = daemon.SdNotify(true, daemon.SdNotifyStopping)
+	b, err = daemon.SdNotify(true, daemon.SdNotifyStopping  + "\nEXIT_STATUS=126")
 	switch {
 		case !b && err == nil:
 			// the logging system is not available, either, so we just print out
@@ -348,6 +349,9 @@ func main() {
 			logme.Warningln("unknown/confused systemd status, ignoring")
 	}
 	if errGin != nil {
-		logme.Fatalln("Gin aborted with", errGin)
+		logme.Errorln("Gin aborted with", errGin)
+	} else {
+		logme.Errorln("Unexpected error, Gin terminated abruptly without error code")
 	}
+	os.Exit(126)
 }
