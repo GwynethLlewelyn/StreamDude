@@ -245,6 +245,7 @@ func main() {
 	{		// base page for complex scripts.
 		apiRoutes.POST("/play",	apiStreamFile)
 		apiRoutes.POST("/auth",	apiSimpleAuthGenKey)
+		apiRoutes.POST("/delete", apiDeleteToken)
 	}
 
 	// Specific routes just for the user interface

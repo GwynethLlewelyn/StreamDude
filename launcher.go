@@ -123,8 +123,6 @@ func apiStreamFile(c *gin.Context) {
 
 	logme.Debugf("Bound command: %+v\n", command)
 
-
-
 	if command.Token == "" {
 		checkErrReply(c, http.StatusUnauthorized, "no valid token sent", fmt.Errorf("no valid token sent"))
 		return
@@ -283,5 +281,58 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 		default:
 			// minimalistic output, good for embedding
 			c.String(http.StatusOK, token)
+	}
+}
+
+// Handles /delete, body contains JSON-encoded token to be deleted.
+func apiDeleteToken(c *gin.Context) {
+	var command Command
+	var err error	// for scope issues on calls with multiple return params.
+	contentType := c.Copy().ContentType()
+
+	if err = c.ShouldBind(&command); err != nil {
+		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
+		return
+	}
+
+	// add headers from Second Life®/OpenSimulator:
+	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")
+	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")
+	command.ObjectKey	= c.GetHeader("X-SecondLife-Object-Key")
+	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
+
+	// we should now be able to do some validation on those
+
+	logme.Debugf("Bound command: %+v\n", command)
+
+	if command.Token == "" {
+		checkErrReply(c, http.StatusUnauthorized, "no valid token sent", fmt.Errorf("no valid token sent"))
+		return
+	}
+
+	// TODO(gwyneth): no-op for now. In the future, the token shall be removed from the KV store.
+	logme.Infoln("Token", command.Token, "deleted successfully.")
+
+	switch contentType {
+		case binding.MIMEJSON:
+			c.JSON(http.StatusOK, gin.H{
+				"status": "ok",
+				"message": "Token " + command.Token + " deleted",
+			})
+		case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
+			c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
+				"Title"			: "Token deleted!",
+				"description"	: "Deletes a token",
+				"Text"			: "Successfully deleted token: " + command.Token,
+			}))
+		case binding.MIMEXML, "application/soap+xml", binding.MIMEXML2:
+			c.XML(http.StatusOK, gin.H{
+					"status": "ok",
+					"message": "Token " + command.Token + " deleted",
+				})
+		case binding.MIMEPlain:
+			fallthrough
+		default:
+			c.String(http.StatusOK, "DELETED: " + command.Token)
 	}
 }
