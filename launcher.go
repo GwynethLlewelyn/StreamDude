@@ -219,7 +219,8 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
 
 	// probe into request, for debugging purposes
-	logme.Debugf("Request received with Content-Type: %q\n", contentType)
+	logme.Debugf("Request received with Content-Type: %q and Accept: %q\n",
+		contentType, c.GetHeader("Accept"))
 
 	/* if contentType == binding.MIMEPOSTForm || contentType == binding.MIMEMultipartPOSTForm {
 		// command.ObjectPIN = c.Copy().Request.FormValue("objectPIN")
@@ -258,10 +259,10 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 	// generate a random token, to be used for future authentication requests
 	token := randomBase64String(32)
 	// TODO: save the token on persistent storage somewhere, e.g. Redis or other KV store.
+	logme.Debugln("Generated token:", token, "Con")
 
 	// For now, we just return the bare-bones token, after checking *how* to
 	// return it, depending on the Content-Type of the request:
-	// contentType := getContentType(c)
 	switch contentType {
 		case binding.MIMEJSON:
 			c.JSON(http.StatusOK, gin.H{
