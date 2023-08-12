@@ -40,31 +40,30 @@ func funcName() string {
 // getContentType parses the Accept and Content-Type headers to figure out
 // what content type to use.
 func getContentType(c *gin.Context) string {
-	cTemp := c.Copy()
+	contextCopy := c.Copy()
 	// As per specs, check Accept header first:
-	contentType := cTemp.GetHeader("Accept")
-	a := cTemp.Accepted
-	logme.Debugf("For %q, full range of accepted headers is: %+v (total entries: %d)\n", cTemp.FullPath(), a, len(a))
+	acceptHeader, _, _ := strings.Cut(contextCopy.GetHeader("Accept"), ",")
+	contentType := contextCopy.ContentType()
+	responseContent := contentType	// may be empty, but it's our fallack scenario
 
-	// for now, we'll just use the _first_ content type in the list.
-	contentType, _, _ = strings.Cut(contentType, ",")
+	logme.Debugf("For %q, full range of accepted headers is: %+v (total entries: %d)\n", contextCopy.FullPath(), contextCopy.GetHeader("Accept"), len(contextCopy.GetHeader("Accept")))
+
+	if len(acceptHeader) != 0 {
+		responseContent = acceptHeader
+	}
 
 	// No Accept, or Accept set to */*? (e.g. GET). Then check the Content-Type header,
 	// using Gin's built-in function.
 	// This _should_ give us a chance to return the same content type as what the
 	// caller requested (e.g. browsers will send )
-	if contentType == "" || contentType == "*/*" {
-		contentType = cTemp.ContentType()
+	if responseContent == "*/*" {
+		responseContent = contentType
 		// Note that Gin only returns the content type and not the charset etc.
-		// This might require in the future to use strings.Cut() again. (gwyneth 20230803)
+		// This might require in the future to use strings.Cut(). (gwyneth 20230803)
 	}
-//
-// 	// Do we accept everything? Then pick JSON as default.
-// 	if contentType == "*/*" {
-// 		contentType = binding.MIMEJSON
-// 		logme.Debugf("For %q, got Accept: */*, so, forcing JSON reply\n", c.FullPath())
-// 	}
-	return contentType
+	logme.Debugf("first acceptHeader: %v responseContent set to: %v\n", acceptHeader, responseContent)
+
+	return responseContent
 }
 
 // Note: all the error codes need to be rewritten... it's getting unmanageable this way. (gwyneth 20220328)
@@ -140,8 +139,8 @@ func checkErrJSON(c *gin.Context, httpStatus int, errorMessage string, err error
 // Universal check for errors and reply using the correct content type.
 func checkErrReply(c *gin.Context, httpStatus int, errorMessage string, err error) {
 	if err != nil {
-//		contentType := getContentType(c)	// maybe this wasn't a good idea after all...
-		contentType := c.Copy().ContentType()
+		contentType := getContentType(c)	// maybe this wasn't a good idea after all...
+//		contentType := c.Copy().ContentType()
 		switch contentType {
 			case binding.MIMEJSON:
 				c.JSON(httpStatus,

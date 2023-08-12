@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	// "strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -106,6 +107,7 @@ func streamFile(filename string) error {
 func apiStreamFile(c *gin.Context) {
 	var command Command
 	var err error	// for scope issues on calls with multiple return params
+	responseContent := getContentType(c)
 
 	// add headers from Second Life®/OpenSimulator:
 	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")	// owner, not touchee
@@ -113,14 +115,11 @@ func apiStreamFile(c *gin.Context) {
 	command.ObjectKey	= c.GetHeader("X-SecondLife-Object-Key")
 	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
 
-	contentType := c.Copy().ContentType()
-
+	// we should now be able to do some validation on those
 	if err = c.ShouldBind(&command); err != nil {
 		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
 		return
 	}
-
-	// we should now be able to do some validation on those
 
 	logme.Debugf("Bound command: %+v\n", command)
 
@@ -148,7 +147,7 @@ func apiStreamFile(c *gin.Context) {
 
 	checkErrReply(c, http.StatusNotFound, fmt.Sprintf("could not stream %q", command.Filename), resultError)
 	if resultError != nil {
-		switch contentType {
+		switch responseContent {
 			case binding.MIMEJSON:
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status": "error",
@@ -174,7 +173,7 @@ func apiStreamFile(c *gin.Context) {
 		return
 	}
 
-	switch contentType {
+	switch responseContent {
 		case binding.MIMEJSON:
 			c.JSON(http.StatusOK, gin.H{
 				"status": "ok",
@@ -202,15 +201,8 @@ func apiStreamFile(c *gin.Context) {
 // Handles /auth, gets the object PIN and returns a token.
 // TODO(gwyneth): It's all fake for now.
 func apiSimpleAuthGenKey(c *gin.Context) {
-/* 	type CommandSimple struct {
-		ObjectPIN string	`validate:"number" xml:"objectPIN" json:"objectPIN" form:"objectPIN" binding:"required"`	// 4-digit PIN from in-world object
-		MasterKey string	`validate:"alphanum" xml:"masterKey" json:"masterKey" form:"masterKey" binding:"required"`	// LAL Master Key
-	}
-
-	var command CommandSimple */
 	var command Command
-
-	contentType := c.Copy().ContentType()
+	responseContent := getContentType(c)
 
 	// add headers from Second Life®/OpenSimulator:
 	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")	// owner, not touchee
@@ -218,30 +210,14 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 	command.ObjectKey	= c.GetHeader("X-SecondLife-Object-Key")
 	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
 
-	// probe into request, for debugging purposes
-	logme.Debugf("Request received with Content-Type: %q and Accept: %q\n",
-		contentType, c.GetHeader("Accept"))
+	if err := c.ShouldBind(&command); err != nil {
+		logme.Warningf("could not bind form using ShouldBind(&command); error was: %q\n;", err)
 
-	/* if contentType == binding.MIMEPOSTForm || contentType == binding.MIMEMultipartPOSTForm {
-		// command.ObjectPIN = c.Copy().Request.FormValue("objectPIN")
-		// command.MasterKey = c.Copy().Request.FormValue("masterKey")
-		if err := c.ShouldBindWith(&command, binding.Query); err == nil {
-			logme.Debugf("HTML form received (%q). Assigning objectID to %q and masterKey to %q\n",
-				contentType, command.ObjectPIN, command.MasterKey)
-		} else {
-			logme.Warningf("could not bind form using ShouldBindWith(&command, binding.Query); error was: %q\n;", err)
-		}
-	} else { */
-		if err := c.ShouldBind(&command); err != nil {
-			logme.Warningf("could not bind form using ShouldBind(&command); error was: %q\n;", err)
-
-			checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
-			return
-		}
-	//}
+		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
+		return
+	}
 
 	logme.Debugf("Bound command: %+v\n", command)
-
 
 	pin, err := strconv.Atoi(command.ObjectPIN)
 	checkErrReply(c, http.StatusBadRequest, "invalid request: invalid or empty PIN", err)
@@ -259,11 +235,11 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 	// generate a random token, to be used for future authentication requests
 	token := randomBase64String(32)
 	// TODO: save the token on persistent storage somewhere, e.g. Redis or other KV store.
-	logme.Debugln("Generated token:", token, "Con")
+	logme.Debugln("Generated token:")
 
 	// For now, we just return the bare-bones token, after checking *how* to
 	// return it, depending on the Content-Type of the request:
-	switch contentType {
+	switch responseContent {
 		case binding.MIMEJSON:
 			c.JSON(http.StatusOK, gin.H{
 				"status": "ok",
@@ -293,22 +269,16 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 // Handles /delete, body contains JSON-encoded token to be deleted.
 func apiDeleteToken(c *gin.Context) {
 	var command Command
-	var err error	// for scope issues on calls with multiple return params.
-	contentType := c.Copy().ContentType()
-
-	if err = c.ShouldBind(&command); err != nil {
-		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
-		return
-	}
+	// var err error	// for scope issues on calls with multiple return params.
+	responseContent := getContentType(c)
 
 	// add headers from Second Life®/OpenSimulator:
-	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")
-	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")
+	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")	// owner, not touchee
+	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")	// will be overwriten with touchee
 	command.ObjectKey	= c.GetHeader("X-SecondLife-Object-Key")
 	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
 
 	// we should now be able to do some validation on those
-
 	logme.Debugf("Bound command: %+v\n", command)
 
 	if command.Token == "" {
@@ -319,7 +289,7 @@ func apiDeleteToken(c *gin.Context) {
 	// TODO(gwyneth): no-op for now. In the future, the token shall be removed from the KV store.
 	logme.Infoln("Token", command.Token, "deleted successfully.")
 
-	switch contentType {
+	switch responseContent {
 		case binding.MIMEJSON:
 			c.JSON(http.StatusOK, gin.H{
 				"status": "ok",
