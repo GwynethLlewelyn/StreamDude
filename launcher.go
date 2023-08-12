@@ -106,18 +106,19 @@ func streamFile(filename string) error {
 func apiStreamFile(c *gin.Context) {
 	var command Command
 	var err error	// for scope issues on calls with multiple return params
+
+	// add headers from Second Life®/OpenSimulator:
+	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")	// owner, not touchee
+	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")	// will be overwriten with touchee
+	command.ObjectKey	= c.GetHeader("X-SecondLife-Object-Key")
+	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
+
 	contentType := c.Copy().ContentType()
 
 	if err = c.ShouldBind(&command); err != nil {
 		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
 		return
 	}
-
-	// add headers from Second Life®/OpenSimulator:
-	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")
-	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")
-	command.ObjectKey	= c.GetHeader("X-SecondLife-Object-Key")
-	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
 
 	// we should now be able to do some validation on those
 
@@ -211,7 +212,11 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 
 	contentType := c.Copy().ContentType()
 
-	// weirdly, forms are an exception?
+	// add headers from Second Life®/OpenSimulator:
+	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")	// owner, not touchee
+	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")	// will be overwriten with touchee
+	command.ObjectKey	= c.GetHeader("X-SecondLife-Object-Key")
+	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
 
 	// probe into request, for debugging purposes
 	logme.Debugf("Request received with Content-Type: %q\n", contentType)
@@ -279,7 +284,7 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 		case binding.MIMEPlain:
 			fallthrough
 		default:
-			// minimalistic output, good for embedding
+			// minimalistic output, good for embedding in LSL
 			c.String(http.StatusOK, token)
 	}
 }
