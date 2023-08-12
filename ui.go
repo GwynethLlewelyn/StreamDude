@@ -49,7 +49,7 @@ func uiPing(c *gin.Context) {
 
 	// this will work even behind Cloudflare (gwyneth 20230804)
 	payload := "pong back to " + c.ClientIP()
-	logme.Debugf("Ping request (%s) from %q received; replying with with Content-Type: %q\n", c.Request.Method, payload, responseContent)
+	logme.Debugf("Ping request (%s) from %q received; replying with Content-Type: %q\n", c.Request.Method, payload, responseContent)
 
 	switch responseContent {
 		case binding.MIMEJSON:

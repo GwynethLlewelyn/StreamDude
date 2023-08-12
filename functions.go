@@ -69,7 +69,7 @@ func getContentType(c *gin.Context) string {
 		responseContent = binding.MIMEHTML
 	}
 
-	logme.Debugf("final responseContent set to: %v\n", responseContent)
+	logme.Debugf("final Content-Type set to: %v\n", responseContent)
 
 	return responseContent
 }
