@@ -18,21 +18,14 @@ import (
 
 // Homepage is the front-end's first page. It might get some authentication at sme point.
 func homepage(c *gin.Context) {
-	contentType := c.Copy().ContentType()
+	responseContent := getContentType(c)
 
 	// Default message for those who do NOT use application/html!
 	homepageMessage := "It works. You should see it in HTML instead, it's so much nicer!"
-	logme.Debugf("homepage: Content-Type: %q; Request method: %q\n", contentType, c.Request.Method)
-
-	// GET method, by specs, should not have a Content-Type header,
-	// but we need one for correctly replying! (gwyneth 20230807)
-	if c.Request.Method == http.MethodGet {
-		contentType = binding.MIMEHTML
-		logme.Debugf("homepage: Get method detected; Content-Type is now %q\n", contentType)
-	}
+	logme.Debugf("homepage: response Content-Type: %q; Request method: %q\n", responseContent, c.Request.Method)
 
 //	switch getContentType(c) {
-	switch contentType {
+	switch responseContent {
 		case binding.MIMEJSON:
 			c.JSON(http.StatusOK, gin.H{"status": "ok", "message": homepageMessage})
 		case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
@@ -52,20 +45,13 @@ func homepage(c *gin.Context) {
 
 // uiPing is the all-purpose ping testing function. Works with HTML too.
 func uiPing(c *gin.Context) {
-	contentType := c.Copy().ContentType()
+	responseContent := getContentType(c)
 
 	// this will work even behind Cloudflare (gwyneth 20230804)
 	payload := "pong back to " + c.ClientIP()
-	logme.Debugf("Ping request (%s) from %q received with Content-Type: %q\n", c.Request.Method, payload, contentType)
+	logme.Debugf("Ping request (%s) from %q received; replying with with Content-Type: %q\n", c.Request.Method, payload, responseContent)
 
-	// GET method, by specs, should not have a Content-Type header,
-	// but we need one for correctly replying! (gwyneth 20230807)
-	if c.Request.Method == http.MethodGet {
-		contentType = binding.MIMEHTML
-	}
-
-//		switch getContentType(c) {
-	switch contentType {
+	switch responseContent {
 		case binding.MIMEJSON:
 			c.JSON(http.StatusOK, gin.H{"status": "ok", "message": payload})
 		case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:

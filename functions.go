@@ -40,14 +40,15 @@ func funcName() string {
 // getContentType parses the Accept and Content-Type headers to figure out
 // what content type to use.
 func getContentType(c *gin.Context) string {
-	contextCopy := c.Copy()
+	contextCopy := c.Copy()	// make a safe internal copy of context, or else boom. (gwyneth 20230813)
 	// As per specs, check Accept header first:
 	acceptHeader, _, _ := strings.Cut(contextCopy.GetHeader("Accept"), ",")
 	contentType := contextCopy.ContentType()
 	responseContent := contentType	// may be empty, but it's our fallack scenario
 
-	logme.Debugf("For %q, full range of accepted headers is: %+v (total entries: %d)\n", contextCopy.FullPath(), contextCopy.GetHeader("Accept"), len(contextCopy.GetHeader("Accept")))
+	logme.Debugf("%s %q: Content-Type is %v; full range of accepted headers is: %+v (total entries: %d) - response, so far, will use %q\n",  contextCopy.Request.Method, contextCopy.FullPath(), contentType, contextCopy.GetHeader("Accept"), len(contextCopy.GetHeader("Accept")), responseContent)
 
+	// if we extracted the first Accept header successfully, then use it:
 	if len(acceptHeader) != 0 {
 		responseContent = acceptHeader
 	}
@@ -61,7 +62,14 @@ func getContentType(c *gin.Context) string {
 		// Note that Gin only returns the content type and not the charset etc.
 		// This might require in the future to use strings.Cut(). (gwyneth 20230803)
 	}
-	logme.Debugf("first acceptHeader: %v responseContent set to: %v\n", acceptHeader, responseContent)
+
+	// GET method, by specs, should not have a Content-Type header,
+	// but we need one for correctly replying! (gwyneth 20230807)
+	if len(responseContent) == 0 && contextCopy.Request.Method == http.MethodGet {
+		responseContent = binding.MIMEHTML
+	}
+
+	logme.Debugf("final responseContent set to: %v\n", responseContent)
 
 	return responseContent
 }
