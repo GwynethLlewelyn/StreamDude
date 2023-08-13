@@ -279,6 +279,13 @@ func apiDeleteToken(c *gin.Context) {
 	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
 
 	// we should now be able to do some validation on those
+	if err := c.ShouldBind(&command); err != nil {
+		logme.Warningf("delete: could not bind form using ShouldBind(&command); error was: %q\n;", err)
+
+		checkErrReply(c, http.StatusInternalServerError, "delete: could not get input data", err)
+		return
+	}
+
 	logme.Debugf("Bound command: %+v\n", command)
 
 	if command.Token == "" {
