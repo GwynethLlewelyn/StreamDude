@@ -194,16 +194,31 @@ state sayNotecard
 {
 	state_entry()
 	{
-		llSetText("Hint sent to " + avatarName, <0.8,0.6,0.0>, 1.0);
+		// reset text because we might not stay here for long
+		llSetText("", ZERO_VECTOR, 1.0);
+		// is someone around?
 		if (avatarKey == NULL_KEY) {
 			llWhisper(PUBLIC_CHANNEL, "Nobody is watching this video... Let's reset it.");
 			llResetScript();
 		}
+		// If we have no notecard, we skip directly to deleting the token:
 		if (llGetInventoryNumber(INVENTORY_NOTECARD) <= 0)
 		{
-			llOwnerSay("Missing notecard!...");
-			llResetScript();
+			llRegionSay(BT_DEBUG_CHANNEL, "Missing notecard, skipping to deleting token '" + token + "'...");
+			// copy-paste from below. Ugly, but that's LSL for you :-P (gwyneth 20230813)
+			string request = "token=" + token
+				+ "&avatarName=" + avatarName
+				+ "&avatarKey=" + (string)avatarKey;
+			reqDelete = llHTTPRequest(streamerAPI + "/delete", [
+					HTTP_METHOD, "POST",
+					HTTP_MIMETYPE, "application/x-www-form-urlencoded",
+					HTTP_ACCEPT, "text/plain", // avoid HTML, since we might not have enough memory to display that
+					HTTP_VERBOSE_THROTTLE, FALSE
+				],
+				request);
+			llSetTimerEvent(30.0);	// should be enough to wait
 		}
+		llSetText("Hint sent to " + avatarName, <0.8,0.6,0.0>, 1.0);
 		llRegionSay(BT_DEBUG_CHANNEL, "Entering sayNotecard loop for " + avatarName + ", token is still: " + token);
 		gName = llGetInventoryName(INVENTORY_NOTECARD, 0);
 		gLine = 0;
