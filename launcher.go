@@ -117,29 +117,29 @@ func apiStreamFile(c *gin.Context) {
 
 	// we should now be able to do some validation on those
 	if err = c.ShouldBind(&command); err != nil {
-		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
+		checkErrReply(c, http.StatusInternalServerError, "stream", err)
 		return
 	}
 
 	logme.Debugf("Bound command: %+v\n", command)
 
 	if command.Token == "" {
-		checkErrReply(c, http.StatusUnauthorized, "no valid token sent", fmt.Errorf("no valid token sent"))
+		checkErrReply(c, http.StatusUnauthorized, "stream", fmt.Errorf("no valid token sent"))
 		return
 	}
 
 	if command.Filename == "" {
-		checkErrReply(c, http.StatusBadRequest, "no valid token sent", fmt.Errorf("empty filename, cannot proceed"))
+		checkErrReply(c, http.StatusBadRequest, "stream", fmt.Errorf("empty filename, cannot proceed"))
 		return
 	}
 	// attempt to expand tilde (~) to user's home directory
 	if command.Filename, err = expandPath(command.Filename); err != nil {
-		checkErrReply(c, http.StatusBadRequest, "filename with ~ not properly expanded to existing file", err)
+		checkErrReply(c, http.StatusBadRequest, "stream: filename with ~ not properly expanded to existing file", err)
 		return
 	}
 	// does the file exist?
 	if _, err := os.Stat(command.Filename); err != nil {
-		checkErrReply(c, http.StatusNotFound, fmt.Sprintf("filename %q for streaming not found", command.Filename),
+		checkErrReply(c, http.StatusNotFound, fmt.Sprintf("stream: filename %q for streaming not found", command.Filename),
 		err)
 	}
 	// we should be good to go now!
@@ -213,14 +213,14 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 	if err := c.ShouldBind(&command); err != nil {
 		logme.Warningf("could not bind form using ShouldBind(&command); error was: %q\n;", err)
 
-		checkErrReply(c, http.StatusInternalServerError, "could not get input data", err)
+		checkErrReply(c, http.StatusInternalServerError, "auth: could not get input data", err)
 		return
 	}
 
 	logme.Debugf("Bound command: %+v\n", command)
 
 	pin, err := strconv.Atoi(command.ObjectPIN)
-	checkErrReply(c, http.StatusBadRequest, "invalid request: invalid or empty PIN", err)
+	checkErrReply(c, http.StatusBadRequest, "auth: invalid request: invalid or empty PIN", err)
 	// TODO(gwyneth): obviously, check if this is a valid PIN...
 	if err != nil {
 		return
@@ -282,7 +282,7 @@ func apiDeleteToken(c *gin.Context) {
 	logme.Debugf("Bound command: %+v\n", command)
 
 	if command.Token == "" {
-		checkErrReply(c, http.StatusUnauthorized, "no valid token sent", fmt.Errorf("no valid token sent"))
+		checkErrReply(c, http.StatusUnauthorized, "delete", fmt.Errorf("no valid token sent"))
 		return
 	}
 

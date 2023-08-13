@@ -6,7 +6,7 @@
 //
 // New tech using "StreamDude" to request a specific file to be streamed. (gwyneth 20230811)
 
-string video		= "Intro-720p-h265.mp4";
+string video		= "Intro-full-more-compressed.mp4";
 string path			= "/var/www/clients/client6/web14/home/betafiles/data/beta-technologies/Universidade de Aveiro/LOCUS Project in Amiais/Panels SL/Painel_Intro/";
 string streamerAPI  = "https://streaming.betatechnologies.info/StreamDude/api";
 string streamerURL	= "rtsp://video.betatechnologies.info:5544/"; // + video
@@ -37,7 +37,7 @@ default
 	{
 		llSetText(llGetObjectDesc(), <0.8, 0.6, 0.0>, 1.0);
 		llSetClickAction(CLICK_ACTION_TOUCH);
-		llSetTouchText("▶︎ Video");
+		llSetTouchText("▶︎");
 		llParcelMediaCommandList([PARCEL_MEDIA_COMMAND_STOP]);
 		avatarKey = NULL_KEY;
 	}
@@ -204,6 +204,7 @@ state sayNotecard
 			llOwnerSay("Missing notecard!...");
 			llResetScript();
 		}
+		llRegionSay(BT_DEBUG_CHANNEL, "Entering sayNotecard loop for " + avatarName + ", token is still: " + token);
 		gName = llGetInventoryName(INVENTORY_NOTECARD, 0);
 		gLine = 0;
 		gQueryID = llGetNotecardLine(gName, gLine);
@@ -222,6 +223,7 @@ state sayNotecard
 				// EOF reached; cleaning up
 				gLine = 0;
 
+				llRegionSay(BT_DEBUG_CHANNEL, "Finished sayNotecard loop for " + avatarName + ", token is still: " + token);
 				string request = "token=" + token
 					+ "&avatarName=" + avatarName
 					+ "&avatarKey=" + (string)avatarKey;
