@@ -5,11 +5,12 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
-	"strings"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -136,8 +137,15 @@ func uiStream(c *gin.Context) {
 	if err != nil {
 		logme.Errorf("sorry, walking through %q got error: %s\n", mediaDirectory, err)
 	}
-
-	logme.Debugf("Directory retrieved: %v\n", )
+	// index.
+	var i = 0
+	if len(playlist) != 0 {
+		for _, dirEntry := range playlist {
+			logme.Debugf("%d: %+v\n", i, dirEntry)
+		}
+		i++
+	}
+	logme.Debugf("%d entries found; Go reports %d elements \n", i, len(playlist))
 
 	if err != nil {
 		switch responseContent {
@@ -169,7 +177,7 @@ func uiStream(c *gin.Context) {
 	c.HTML(http.StatusOK, "streamdir.tpl", environment(c, gin.H{
 		"Title"			 : template.HTML("<i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i><i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i>&nbsp;Stream from media directory<br><code>" + mediaDirectory + "</code>"),
 		"description"	 : "Streaming from " + mediaDirectory,
-		"Text"			 : "Streaming from " + mediaDirectory,
+		"Text"			 : fmt.Sprintf("Streaming from %q with %d entries...", mediaDirectory, i),
 		"hasDirList"	 : true,
 		"mediaDirectory" : mediaDirectory,
 		"playlist"		 : playlist,
