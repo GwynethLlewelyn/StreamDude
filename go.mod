@@ -8,6 +8,7 @@ require (
 	github.com/dchest/uniuri v1.2.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/validator/v10 v10.15.1
+	github.com/karrick/godirwalk v1.17.0
 	github.com/karrick/golf v1.4.0
 	github.com/mattn/go-isatty v0.0.19
 	github.com/sirupsen/logrus v1.9.3

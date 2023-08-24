@@ -61,6 +61,10 @@
 		{{- end -}}
 		<!-- Nord theme comes after the above, so that it might overwrite things in case of need -->
 		<link rel="stylesheet" href="{{- .URLPathPrefix -}}/assets/css/nordbootstrap.css?cache-buster={{- .cacheBuster -}}" />
+		{{- if .hasDirList -}}
+		<!-- CSS for dirlist -->
+		<link rel="stylesheet" href="{{- .URLPathPrefix -}}/assets/css/dirlist.css?cache-buster={{- .cacheBuster -}}" />
+		{{- end -}}
 		<!-- our own CSS at the end, so that everything from CodeMirror can be overridden (gwyneth 20220327) -->
 		<link rel="stylesheet" href="{{- .URLPathPrefix -}}/assets/css/style.css?cache-buster={{- .cacheBuster -}}" />
 	</head>

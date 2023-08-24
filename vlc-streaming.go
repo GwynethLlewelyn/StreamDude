@@ -3,12 +3,23 @@
 package main
 
 import (
+	"io/fs"
+	"html/template"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	vlc "github.com/adrg/libvlc-go/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/karrick/godirwalk"
 )
+
+const validExtensions = ".mp3.m4a.aac"	// valid audio extensions, add more if needed.
+
+// A series of valid playlist entries (only audio files).
+var playlist []fs.FileInfo
 
 // Gin handler to stream from a directory.
 // Everything is pretty much embedded in the code for now, except the path, which is on mediaDirectory.
@@ -31,10 +42,57 @@ func apiStreamPath(c *gin.Context) {
 	logme.Infoln("streaming from directory:", mediaDirectory)
 	logme.Debugf("Bound command: %+v\n", command)
 
-	resultError := streamMedia(mediaDirectory)
+	playlist = nil	// boom?
+
+	err = godirwalk.Walk(mediaDirectory,
+		&godirwalk.Options{
+			Callback: func(osPathname string, de *godirwalk.Dirent) error {
+				// skip directories/symlinks to directories (if not in recursive mode)
+				isDir, dirErr := de.IsDirOrSymlinkToDir();
+				if isDir {
+					if dirErr == nil {
+						// return godirwalk.SkipThis
+						return nil
+					}
+					logme.Errorf("error when trying to access directory/symlink %q: %s",
+						osPathname, dirErr)
+						return nil
+				}
+				// check if this IS a valid audio file or not.
+				// a more stricter check should deal with
+				if !strings.Contains(validExtensions, strings.ToLower(filepath.Ext(de.Name()))) {
+					// skip this file if not
+					return godirwalk.SkipThis
+				}
+				// ok, get the fileinfo for this entry
+				st, err := os.Stat(osPathname)
+				if err != nil {
+					logme.Errorf("stat() failed on file %s: %s\n", osPathname, err)
+					return err
+				}
+				// add another file to the list...
+				playlist = append(playlist, st)
+				// all clear, let's move on!
+				return nil
+			},	// ends Callback
+			ErrorCallback: func(osPathname string, err error) godirwalk.ErrorAction {
+				logme.Errorf("on file %s: %s\n", osPathname, err)
+				return godirwalk.SkipNode
+			},
+			Unsorted: false, // (optional) set true for faster yet non-deterministic enumeration (see godoc)
+	})	// end options for dirwalk
+	if err != nil {
+		logme.Errorf("sorry, walking through %q got error: %s\n", mediaDirectory, err)
+	}
+
+	logme.Debugf("Directory retrieved:")
+
+/*	resultError := streamMedia(mediaDirectory)
 
 	checkErrReply(c, http.StatusNotFound, "could not stream from " + mediaDirectory, resultError)
 	if resultError != nil {
+		*/
+	if err != nil {
 		switch responseContent {
 			case binding.MIMEJSON:
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -60,6 +118,15 @@ func apiStreamPath(c *gin.Context) {
 		}
 		return
 	}
+
+	c.HTML(http.StatusOK, "streamdir.tpl", environment(c, gin.H{
+		"Title"			 : template.HTML("<i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i><i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i>&nbsp;Stream from media directory<br><code>" + mediaDirectory + "</code>"),
+		"description"	 : "Streaming from " + mediaDirectory,
+		"Text"			 : "Streaming from " + mediaDirectory,
+		"hasDirList"	 : true,
+		"mediaDirectory" : mediaDirectory,
+		"playlist"		 : playlist,
+	}))
 }
 
 func streamMedia(mediaLibrary string) error {
