@@ -281,7 +281,7 @@ func main() {
 			c.HTML(http.StatusOK, "form-play.tpl", environment(c, gin.H{
 			}))
 		})
-
+		uiRoutes.GET("/stream", uiStream)
 	}
 
 	// Catch all other routes and send back an error

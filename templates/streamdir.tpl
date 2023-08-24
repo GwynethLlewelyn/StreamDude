@@ -9,21 +9,26 @@
 								{{- range $file := .mediaDirectory -}}
 								<li class="list-group-item d-flex justify-content-between align-content-center">
 									<div class="d-flex flex-row">
-										<i class="bi bi-music-note-beamed" style="font-size: 40px; color: var(--yellow);" aria-hidden="true">
-										<!-- width 40 -->
-										<div class="ml-2">
-											<h6 class="mb-0">Turbine parts</h6>
+										{{- if $file.IsDir() -}}
+										<i class="bi bi-folder-fill" style="font-size: 40px; color: var(--yellow);" aria-hidden="true">
+										{{- else -}}
+										<i class="bi bi-music-note-beamed" style="font-size: 40px; color: var(--purple);" aria-hidden="true">
+										{{- end -}}
+										<div class="ml-2 filename-{{- $file.Name() -}}">
+											<h6 class="mb-0">{{- $file.Name() -}}</h6>
 											<div class="about">
-												<span>802 Files</span>
-												<span>Jan 29, 2020</span>
+												<span><integer>{{- $file.Size() -}}</integer> bytes</span>
+												<span><time datetime="{{- $file.ModTime() -}}">{{- $file.ModTime() -}}</time></span>
 											</div>
 										</div>
 									</div>
+									{{- if not $file.IsDir() -}}
 									<div class="check">
-										<input type="checkbox" name="a">
+										<input type="checkbox" name="checkbox-{{- $file.Name() -}}">
 									</div>
+									{{- end -}}
 								</li>
-								{{- end -}}
+								{{- end -}}<!-- loop -->
 							</ul>
 						</div>
 						{{ .Text }}

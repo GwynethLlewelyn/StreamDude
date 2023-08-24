@@ -3,22 +3,26 @@
 package main
 
 import (
-	"io/fs"
+	"fmt"
 	"html/template"
+	"io/fs"
 	"net/http"
-	"os"
+
+	//	"os"
 	"path/filepath"
-	"strings"
+	//	"strings"
 
 	vlc "github.com/adrg/libvlc-go/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/karrick/godirwalk"
+//	"github.com/karrick/godirwalk"
 )
 
 const validExtensions = ".mp3.m4a.aac"	// valid audio extensions, add more if needed.
 
 // A series of valid playlist entries (only audio files).
+// This is allegedly constructed once, by the ui/stream handler, and reused here.
+// TODO(gwyneth): Or maybe put inside a Gin context?
 var playlist []fs.FileInfo
 
 // Gin handler to stream from a directory.
@@ -39,60 +43,19 @@ func apiStreamPath(c *gin.Context) {
 		checkErrReply(c, http.StatusInternalServerError, "stream", err)
 		return
 	}
-	logme.Infoln("streaming from directory:", mediaDirectory)
+	logme.Infof("streaming from playlist: %v\n", playlist)
 	logme.Debugf("Bound command: %+v\n", command)
 
-	playlist = nil	// boom?
-
-	err = godirwalk.Walk(mediaDirectory,
-		&godirwalk.Options{
-			Callback: func(osPathname string, de *godirwalk.Dirent) error {
-				// skip directories/symlinks to directories (if not in recursive mode)
-				isDir, dirErr := de.IsDirOrSymlinkToDir();
-				if isDir {
-					if dirErr == nil {
-						// return godirwalk.SkipThis
-						return nil
-					}
-					logme.Errorf("error when trying to access directory/symlink %q: %s",
-						osPathname, dirErr)
-						return nil
-				}
-				// check if this IS a valid audio file or not.
-				// a more stricter check should deal with
-				if !strings.Contains(validExtensions, strings.ToLower(filepath.Ext(de.Name()))) {
-					// skip this file if not
-					return godirwalk.SkipThis
-				}
-				// ok, get the fileinfo for this entry
-				st, err := os.Stat(osPathname)
-				if err != nil {
-					logme.Errorf("stat() failed on file %s: %s\n", osPathname, err)
-					return err
-				}
-				// add another file to the list...
-				playlist = append(playlist, st)
-				// all clear, let's move on!
-				return nil
-			},	// ends Callback
-			ErrorCallback: func(osPathname string, err error) godirwalk.ErrorAction {
-				logme.Errorf("on file %s: %s\n", osPathname, err)
-				return godirwalk.SkipNode
-			},
-			Unsorted: false, // (optional) set true for faster yet non-deterministic enumeration (see godoc)
-	})	// end options for dirwalk
-	if err != nil {
-		logme.Errorf("sorry, walking through %q got error: %s\n", mediaDirectory, err)
+	// Error related to streaming via VLC, but we don't want to call that if the playlist is empty.
+	var resultError error
+	if len(playlist) == 0 {
+		resultError = fmt.Errorf("empty playlist passed")
+	} else {
+		resultError = streamMedia(playlist)
 	}
-
-	logme.Debugf("Directory retrieved:")
-
-/*	resultError := streamMedia(mediaDirectory)
 
 	checkErrReply(c, http.StatusNotFound, "could not stream from " + mediaDirectory, resultError)
 	if resultError != nil {
-		*/
-	if err != nil {
 		switch responseContent {
 			case binding.MIMEJSON:
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -109,7 +72,7 @@ func apiStreamPath(c *gin.Context) {
 				c.XML(http.StatusBadRequest, gin.H{
 						"status": "error",
 						"message": "Error streaming from " + mediaDirectory + ": " + err.Error(),
-					})
+				})
 			case binding.MIMEPlain:
 				fallthrough
 			default:
@@ -119,17 +82,42 @@ func apiStreamPath(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "streamdir.tpl", environment(c, gin.H{
-		"Title"			 : template.HTML("<i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i><i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i>&nbsp;Stream from media directory<br><code>" + mediaDirectory + "</code>"),
-		"description"	 : "Streaming from " + mediaDirectory,
-		"Text"			 : "Streaming from " + mediaDirectory,
-		"hasDirList"	 : true,
-		"mediaDirectory" : mediaDirectory,
-		"playlist"		 : playlist,
-	}))
+	switch responseContent {
+		case binding.MIMEJSON:
+			c.JSON(http.StatusOK, gin.H{
+				"status": "ok",
+				"message": "successfully streamed from " + mediaDirectory,
+			})
+		case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
+			c.HTML(http.StatusOK, "streamdir.tpl", environment(c, gin.H{
+				"Title"			 : template.HTML("<i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i><i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i>&nbsp;Stream from media directory<br><code>" + mediaDirectory + "</code>"),
+				"description"	 : "Successfully streamed from " + mediaDirectory,
+				"Text"			 : "👍🆗✅ Successfully streamed from " + mediaDirectory,
+				"hasDirList"	 : true,
+				"setBanner"		 : true,
+				"mediaDirectory" : mediaDirectory,
+				"playlist"		 : playlist,
+			}))
+		case binding.MIMEXML, "application/soap+xml", binding.MIMEXML2:
+			c.XML(http.StatusOK, gin.H{
+					"status": "ok",
+					"message": "successfully streamed from " + mediaDirectory,
+			})
+		case binding.MIMEPlain:
+			fallthrough
+		default:
+			// minimalistic output, good for embedding
+			c.String(http.StatusOK, "successfully streamed from " + mediaDirectory)
+	}
 }
 
-func streamMedia(mediaLibrary string) error {
+// Internal function to stream media via VLC, based on a playlost we got earlier.
+func streamMedia(myPlayList []fs.FileInfo) error {
+	// Make sure we got *something*!
+	if len(myPlayList) == 0 {
+		return fmt.Errorf("streamMedia() got an empty playlist for media dir: %q\n", mediaDirectory)
+	}
+
 	// Initialize libVLC. Additional command line arguments can be passed in
 	// to libVLC by specifying them in the Init function.
 	if err := vlc.Init("--no-video", "--quiet"); err != nil {
@@ -154,10 +142,16 @@ func streamMedia(mediaLibrary string) error {
 	}
 	defer list.Release()
 
-	err = list.AddMediaFromPath(mediaLibrary)
-	if err != nil {
-		return err
+	// Now loop through the whole playlist and count the entries.
+	var i int
+	for _, entry := range myPlayList {
+		err = list.AddMediaFromPath(filepath.Join(mediaDirectory, entry.Name()))
+		if err != nil {
+			return err
+		}
+		i++
 	}
+	logme.Infof("%d entries from playlist added to streamer\n", i)
 /*
 	err = list.AddMediaFromURL("http://stream-uk1.radioparadise.com/mp3-32")
 	if err != nil {
