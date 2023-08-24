@@ -132,6 +132,11 @@ If you're running a Unix version supporting `systemd`, you can grab a [sample un
 
 Coloured `journald` logs are yet to be implemented, but at least you can get them using `journalctl -u StreamDude -f`.
 
+## Third-party dependencies and thanks
+
+-   [Gin](https://gin-gonic.com/), of course.
+-   Thanks as well to the team that provided [access to the VLC libraries using Go](https://github.com/adrg/libvlc-go), or else I couldn't stream from a disk directory stored on the server :-P
+
 ## Release notes
 
 See [CHANGELOG.md](CHANGELOG.md).
