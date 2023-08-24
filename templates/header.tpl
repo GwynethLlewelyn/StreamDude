@@ -90,7 +90,7 @@
 							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/play"><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Play single file</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/stream"><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Stream from media dir</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/stream"><i class="bi bi-music-note-beamed" aria-hidden="true"></i><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Stream from media dir</a>
 						</li>
 						<!--
 						<li class="nav-item dropdown">
