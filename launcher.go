@@ -77,7 +77,7 @@ func streamFile(filename string) error {
 		defer runtime.UnlockOSThread()
 
 		cmd := exec.Command(ffmpegPath, "-re", "-i", filename, "-acodec", "copy", "-vcodec", "copy",
-			"-f", "rtsp", "-muxdelay", "0.1", "-rtsp_transport", "tcp", cmdURL)
+			"-f", "rtsp", "-muxdelay", "0.1", "-tune", "zerolatency", "-rtsp_transport", "tcp", cmdURL)
 		logme.Debugf("command to be executed: %s\n", cmd.String())
 		// launch ffmpeg, but don't wait for it.
 		err := cmd.Start()
@@ -104,71 +104,72 @@ func streamFile(filename string) error {
  */
 
 // Handles /play, body contains JSON-encoded filename etc.
+// Plays a single file only.
 func apiStreamFile(c *gin.Context) {
 	var command Command
 	var err error	// for scope issues on calls with multiple return params
 	responseContent := getContentType(c)
 
 	// add headers from Second Life®/OpenSimulator:
-	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")	// owner, not touchee
-	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")	// will be overwriten with touchee
+	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")	// owner, not toucher
+	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")	// will be overwriten with toucher
 	command.ObjectKey	= c.GetHeader("X-SecondLife-Object-Key")
 	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
 
 	// we should now be able to do some validation on those
 	if err = c.ShouldBind(&command); err != nil {
-		checkErrReply(c, http.StatusInternalServerError, "stream", err)
+		checkErrReply(c, http.StatusInternalServerError, "play", err)
 		return
 	}
 
 	logme.Debugf("Bound command: %+v\n", command)
 
 	if command.Token == "" {
-		checkErrReply(c, http.StatusUnauthorized, "stream", fmt.Errorf("no valid token sent"))
+		checkErrReply(c, http.StatusUnauthorized, "play", fmt.Errorf("no valid token sent"))
 		return
 	}
 
 	if command.Filename == "" {
-		checkErrReply(c, http.StatusBadRequest, "stream", fmt.Errorf("empty filename, cannot proceed"))
+		checkErrReply(c, http.StatusBadRequest, "play", fmt.Errorf("empty filename, cannot proceed"))
 		return
 	}
 	// attempt to expand tilde (~) to user's home directory
 	if command.Filename, err = expandPath(command.Filename); err != nil {
-		checkErrReply(c, http.StatusBadRequest, "stream: filename with ~ not properly expanded to existing file", err)
+		checkErrReply(c, http.StatusBadRequest, "play: filename with ~ not properly expanded to existing file", err)
 		return
 	}
 	// does the file exist?
 	if _, err := os.Stat(command.Filename); err != nil {
-		checkErrReply(c, http.StatusNotFound, fmt.Sprintf("stream: filename %q for streaming not found", command.Filename),
+		checkErrReply(c, http.StatusNotFound, fmt.Sprintf("play: filename %q for streaming not found", command.Filename),
 		err)
 	}
 	// we should be good to go now!
 	resultError := streamFile(command.Filename)
 
-	checkErrReply(c, http.StatusNotFound, fmt.Sprintf("could not stream %q", command.Filename), resultError)
+	checkErrReply(c, http.StatusNotFound, fmt.Sprintf("could not play %q", command.Filename), resultError)
 	if resultError != nil {
 		switch responseContent {
 			case binding.MIMEJSON:
 				c.JSON(http.StatusBadRequest, gin.H{
 					"status": "error",
-					"message": "Error streaming " + command.Filename + ": " + err.Error(),
+					"message": "Error playing " + command.Filename + ": " + err.Error(),
 				})
 			case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
 				c.HTML(http.StatusBadRequest, "generic.tpl", environment(c, gin.H{
-					"Title"			: "Error during stream",
+					"Title"			: "Error during play",
 					"description"	: "The file failed to stream",
-					"Text"			: "Error streaming " + command.Filename + ": " + err.Error(),
+					"Text"			: "Error playing " + command.Filename + ": " + err.Error(),
 				}))
 			case binding.MIMEXML, "application/soap+xml", binding.MIMEXML2:
 				c.XML(http.StatusBadRequest, gin.H{
 						"status": "error",
-						"message": "Error streaming " + command.Filename + ": " + err.Error(),
+						"message": "Error playing " + command.Filename + ": " + err.Error(),
 					})
 			case binding.MIMEPlain:
 				fallthrough
 			default:
 				// minimalistic output, good for embedding
-				c.String(http.StatusBadRequest, command.Filename + " successfully streamed")
+				c.String(http.StatusBadRequest, command.Filename + " successfully played")
 		}
 		return
 	}
@@ -177,24 +178,24 @@ func apiStreamFile(c *gin.Context) {
 		case binding.MIMEJSON:
 			c.JSON(http.StatusOK, gin.H{
 				"status": "ok",
-				"message": command.Filename + " successfully streamed",
+				"message": command.Filename + " successfully played",
 			})
 		case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
 			c.HTML(http.StatusOK, "generic.tpl", environment(c, gin.H{
-				"Title"			: "File successfully streamed!",
-				"description"	: "The file has been successfully streamed",
-				"Text"			: command.Filename + " was successfully streamed!",
+				"Title"			: "File successfully played!",
+				"description"	: "The file has been successfully played",
+				"Text"			: command.Filename + " was successfully played!",
 			}))
 		case binding.MIMEXML, "application/soap+xml", binding.MIMEXML2:
 			c.XML(http.StatusOK, gin.H{
 					"status": "ok",
-					"message": command.Filename + " successfully streamed",
+					"message": command.Filename + " successfully played",
 				})
 		case binding.MIMEPlain:
 			fallthrough
 		default:
 			// minimalistic output, good for embedding
-			c.String(http.StatusOK, command.Filename + " successfully streamed")
+			c.String(http.StatusOK, command.Filename + " successfully played")
 	}
 }
 
@@ -205,8 +206,8 @@ func apiSimpleAuthGenKey(c *gin.Context) {
 	responseContent := getContentType(c)
 
 	// add headers from Second Life®/OpenSimulator:
-	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")	// owner, not touchee
-	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")	// will be overwriten with touchee
+	command.AvatarKey 	= c.GetHeader("X-SecondLife-Avatar-Key")	// owner, not toucher
+	command.AvatarName	= c.GetHeader("X-SecondLife-Avatar-Name")	// will be overwritten with toucher
 	command.ObjectKey	= c.GetHeader("X-SecondLife-Object-Key")
 	command.ObjectName	= c.GetHeader("X-SecondLife-Object-Name")
 

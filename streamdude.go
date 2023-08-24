@@ -48,6 +48,7 @@ var (
 	templatePath string			// where templates are held
 	pathToStaticFiles string	// where static assets are stored
 	workingDirectory string		// workingDirectory is the result of os.Getwd() or "." if that fails.
+	mediaDirectory string		// where media can be found on this server.
 	urlPathPrefix string		// URL path prefix
 	lslSignaturePIN string		// what we send from LSL
 	debug bool					// set to debug level
@@ -110,6 +111,7 @@ func main() {
 	flag.StringVarP(&externalHost,	'x', "externalhost",	hostname,		"external hostname if using a reverse proxy")
 	flag.StringVarP(&templatePath,	't', "templatepath",	"./templates",	"where templates are held")
 	flag.StringVarP(&pathToStaticFiles, 's', "staticpath",	"./assets",		"where static assets are stored")
+	flag.StringVarP(&mediaDirectory, 'g', "mediapath",		"/tmp",			"absolute path where media files can be found")
 	flag.StringVarP(&urlPathPrefix,	'u', "urlprefix",		"",				"URL path prefix")
 	flag.StringVarP(&lslSignaturePIN, 'l',	"lslpin",		"0000",			"LSL signature PIN")
 	flag.BoolVarP(&debug,			'd', "debug",			false, 			"set debug level (omit for normal logs)")
@@ -199,7 +201,24 @@ func main() {
 	}
 	logme.Infof("external hostname set to: %q (empty is ok)\n", externalHost)
 
-	// Setup templating system.
+	// Validate path to media files. /tmp is perfectly accetable and valid.
+	if err := validate.Var(mediaDirectory, "filepath"); err != nil {
+		if fsInfo, err := os.Stat(mediaDirectory); err != nil {
+			if !fsInfo.IsDir() {
+				logme.Warnf("%q exists, but is not a valid directory; setting to /tmp\n", mediaDirectory)
+				mediaDirectory = "/tmp"
+			} else {
+				logme.Infof("valid media directory found at %q (default should be /tmp which is ok)\n", mediaDirectory)
+
+			}
+		} else {
+			logme.Warnf("cannot stat %q, error was: %v\n", mediaDirectory, err)
+		}
+	} else {
+		logme.Warnf("invalid directory path %q, error was: %v\n", mediaDirectory, err)
+	}
+
+ 	// Setup templating system.
 
 	// var err error	// needed for scope issues
 	if workingDirectory, err = os.Getwd(); err != nil {
@@ -246,6 +265,7 @@ func main() {
 		apiRoutes.POST("/play",	apiStreamFile)
 		apiRoutes.POST("/auth",	apiSimpleAuthGenKey)
 		apiRoutes.POST("/delete", apiDeleteToken)
+		apiRoutes.POST("/stream", apiStreamPath)
 	}
 
 	// Specific routes just for the user interface

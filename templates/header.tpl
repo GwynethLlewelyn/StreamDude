@@ -87,7 +87,10 @@
 							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/auth"><i class="bi bi-person-lock" aria-hidden="true"></i>&nbsp;Authentication</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/play"><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Play Stream</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/play"><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Play single file</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/stream"><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Stream from media dir</a>
 						</li>
 						<!--
 						<li class="nav-item dropdown">
