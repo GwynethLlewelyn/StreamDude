@@ -137,16 +137,19 @@ func uiStream(c *gin.Context) {
 	if err != nil {
 		logme.Errorf("sorry, walking through %q got error: %s\n", mediaDirectory, err)
 	}
-	// index.
-	var i = 0
-	if len(playlist) != 0 {
-		for _, dirEntry := range playlist {
-			logme.Debugf("%d: %+v\n", i, dirEntry)
-			i++
+	// no need to tranverse everything if we're not in debug mode!
+	if (debug) {
+		// index.
+		var i = 0
+		if len(playlist) != 0 {
+			for _, dirEntry := range playlist {
+				logme.Debugf("%d: %+v\n", i, dirEntry)
+				i++
+			}
 		}
+		logme.Debugf("%d entries found; Go reports %d elements \n", i, len(playlist))
+		logme.Debugf("Currently, error is %v and responseContent is %q\n", err, responseContent)
 	}
-	logme.Debugf("%d entries found; Go reports %d elements \n", i, len(playlist))
-	logme.Debugf("Currently, error is %v and responseContent is %q\n", err, responseContent)
 	if err != nil {
 		switch responseContent {
 			case binding.MIMEJSON:
