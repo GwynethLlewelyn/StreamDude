@@ -26,7 +26,7 @@
 											<h6 class="mb-0">{{- $file.Name -}}</h6>
 											<div class="about">
 												<span><integer>{{- $file.Size -}}</integer> bytes</span>
-												<span><time datetime="{{- $file.ModTime -}}">{{- $file.ModTime -}}</time></span>
+												<span><time datetime="{{- /* $file.ModTime */ -}}">{{- /* $file.ModTime */ -}}</time></span>
 											</div>
 										</div>
 									</div>
