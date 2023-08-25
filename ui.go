@@ -180,7 +180,7 @@ func uiStream(c *gin.Context) {
 	c.HTML(http.StatusOK, "streamdir.tpl", environment(c, gin.H{
 		"Title"			 : template.HTML("<i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i><i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i>&nbsp;Stream from media directory"),
 		"description"	 : "Streaming from " + mediaDirectory,
-		"Text"			 : fmt.Sprintf("Ready to start streaming from %q with %d entries...", mediaDirectory, i),
+		"Text"			 : fmt.Sprintf("Ready to start streaming from %q with %d entries...", mediaDirectory, len(playlist)),
 		"hasDirList"	 : true,
 		"mediaDirectory" : mediaDirectory,
 		"playlist"		 : playlist,
