@@ -50,6 +50,7 @@ Currently, the only streaming server supported is [lal (Live And Live)](https://
 5. `/usr/bin/curl --header "Content-Type: application/json" --header "Accept: application/json" --request GET    http://127.0.0.1:3554/ping` — should give `{"message":"pong back to 127.0.0.1","status":"ok"}`
 6. `/usr/bin/curl --header "Content-Type: application/json" --header "Accept: application/json" --request POST   --data '{ "objectPIN": "0000" }' http://127.0.0.1:3554/api/auth` — should give you an authentication token, e.g. `ZmFrZXRva2Vu`
 7. `/usr/bin/curl --header "Content-Type: application/json" --header "Accept: application/json" --request POST   --data '{ "token": "ZmFrZXRva2Vu", "filename": "/path/to/video.mp4"  }' http://127.0.0.1:3554/api/play` — should launch ffmpeg and send `video.mp4` to be streamed
+8. For streaming a whole playlist, you will need to have the ALSA utils installed — currently, streaming a playlist requires the [VLC libraries](https://www.videolan.org/vlc/) as well as the `alsa-utils` package (on Linux and FreeBSD).
 
 **Note:** `objectPIN` and `token` are not really, really being enforced — there is no database/KV store backend yet, but as soon as there is one, I've put the validation code in place, so you should fill in those fields.
 
@@ -57,9 +58,9 @@ Also note that there are further fields for Second Life®/OpenSimulator, all of 
 
 ## Backoffice
 
-Currently not implemented. There is just a home page and a Ping test. The remaining menu areas are not really working (they will become forms for testing purposes).
+Under construction. Authentication, of course, is fake.
 
-The home page, properly speaking, will become an instance of [MusicFolderPlayer](https://github.com/ltguillaume/music-folder-player/) (the inspiration for this project).
+The home page, properly speaking, may become an instance of [MusicFolderPlayer](https://github.com/ltguillaume/music-folder-player/) (the inspiration for this project).
 
 ## Nginx conf sample
 
