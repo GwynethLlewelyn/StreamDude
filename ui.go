@@ -142,11 +142,11 @@ func uiStream(c *gin.Context) {
 	if len(playlist) != 0 {
 		for _, dirEntry := range playlist {
 			logme.Debugf("%d: %+v\n", i, dirEntry)
+			i++
 		}
-		i++
 	}
 	logme.Debugf("%d entries found; Go reports %d elements \n", i, len(playlist))
-
+	logme.Debugf("Currently, error is %v and responseContent is %q\n", err, responseContent)
 	if err != nil {
 		switch responseContent {
 			case binding.MIMEJSON:

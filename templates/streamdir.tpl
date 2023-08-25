@@ -1,4 +1,4 @@
-{{- define "generic.tpl" -}}
+{{- define "streamdir.tpl" -}}
 {{- template "header.tpl" . -}}
 					<div class="col">
 						{{- if .Title -}}
