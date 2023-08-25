@@ -4,9 +4,11 @@
 						{{- if .Title -}}
 						<h1>{{- .Title -}}</h1>
 						{{- end -}}
+						{{- if .mediaDirectory -}}
+						<h3>{{- .mediaDirectory -}}</h3>
+						{{- end -}}
 						{{- if .setBanner -}}
 						<div class="alert alert-success alert-dismissible fade show" role="alert">
-
 							{{ .Text }}
 							<button type="button" class="close" data-dismiss="alert" aria-label="Close">
 								<span aria-hidden="true">&times;</span>
@@ -16,7 +18,7 @@
 						<form role="form" class="user" action="{{- .URLPathPrefix -}}/api/stream" method="POST">
 							<div class="container d-flex justify-content-center">
 								<ul class="list-group mt-5 text-white">
-									{{- range $file := .mediaDirectory -}}
+									{{- range $file := .playlist -}}
 									<li class="list-group-item d-flex justify-content-between align-content-center">
 										<div class="d-flex flex-row">
 											{{- if $file.IsDir -}}
