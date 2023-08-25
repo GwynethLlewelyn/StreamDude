@@ -15,6 +15,7 @@ package main
 import (
 	//	"log"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 	"os/signal"
@@ -135,6 +136,10 @@ func main() {
 	// router.SetTrustedProxies(nil)	// as per https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies (gwyneth 20220111).
 	router.SetTrustedProxies([]string{"127.0.0.1"})	// apparently we should at least trust "our" proxy
 	router.TrustedPlatform = gin.PlatformCloudflare	// we're running behind Cloudflare CDN, this will retrieve the correct IP address. Hopefully.
+	router.SetFuncMap(template.FuncMap{
+		"bitTest": bitTest,
+		"formatAsDate": formatAsDate,
+	})
 
 	// Configure logrus.
 	//	log.SetFlags(log.LstdFlags | log.Lshortfile)

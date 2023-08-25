@@ -5,7 +5,9 @@
 						<h1>{{- .Title -}}</h1>
 						{{- end -}}
 						{{- if .mediaDirectory -}}
-						<h3>{{- .mediaDirectory -}}</h3>
+						<div class="alert alert-info" role="info">
+						{{ .mediaDirectory }}
+						</div>
 						{{- end -}}
 						{{- if .setBanner -}}
 						<div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -22,9 +24,9 @@
 									<li class="list-group-item d-flex justify-content-between align-content-center">
 										<div class="d-flex flex-row">
 											{{- if $file.IsDir -}}
-											<i class="bi bi-folder-fill" style="font-size: 40px; color: var(--yellow);" aria-hidden="true">
+											<i class="bi bi-folder-fill" style="font-size: 40px; color: var(--yellow);" aria-hidden="true"></i>
 											{{- else -}}
-											<i class="bi bi-music-note-beamed" style="font-size: 40px; color: var(--purple);" aria-hidden="true">
+											<i class="bi bi-music-note-beamed" style="font-size: 40px; color: var(--purple);" aria-hidden="true"></i>
 											{{- end -}}
 											<div class="ml-2 filename-{{- $file.Name -}}">
 												<h6 class="mb-0">{{- $file.Name -}}</h6>
@@ -32,10 +34,10 @@
 													<span>
 														<integer>{{- $file.Size -}}</integer> bytes
 													</span>
-													<span><time datetime="{{- /* $file.ModTime */ -}}">{{- /* $file.ModTime */ -}}</time></span>
+													<span><time datetime="{{- formatAsDate $file.ModTime -}}">{{- formatAsDate $file.ModTime -}}</time></span>
 												</div>
 											</div>
-										</div>
+										</div> <!-- /d-flex flex-row -->
 										{{- if not $file.IsDir -}}
 										<div class="check">
 											<input type="checkbox" name="checkbox-{{- $file.Name -}}">
@@ -45,7 +47,7 @@
 									{{- end -}}<!-- loop -->
 								</ul>
 								<input type="submit" value="Stream" class="btn btn-primary btn-user btn-sm">
-							</div>
+							</div> <!-- /container d-flex -->
 						</form>
 						{{- if not .setBanner -}}
 						{{ .Text }}
