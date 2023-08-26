@@ -206,20 +206,24 @@ func main() {
 	}
 	logme.Infof("external hostname set to: %q (empty is ok)\n", externalHost)
 
-	// Validate path to media files. /tmp is perfectly accetable and valid.
-	if err := validate.Var(mediaDirectory, "filepath"); err != nil {
-		if fsInfo, err := os.Stat(mediaDirectory); err != nil {
+	// Validate path to media files. /tmp is perfectly acceptable and valid.
+	if err := validate.Var(mediaDirectory, "filepath"); err == nil {
+		// no errors in path, check if directory exists and is a directory
+		if fsInfo, err := os.Stat(mediaDirectory); err == nil {
+			// no errors, so file/directory exists.
+			// see if it is a directory:
 			if !fsInfo.IsDir() {
 				logme.Warnf("%q exists, but is not a valid directory; setting to /tmp\n", mediaDirectory)
 				mediaDirectory = "/tmp"
 			} else {
 				logme.Infof("valid media directory found at %q (default should be /tmp which is ok)\n", mediaDirectory)
-
 			}
 		} else {
+			// path was well-form but unfortunately points to somewhere that we cannot open/stat:
 			logme.Warnf("cannot stat %q, error was: %v\n", mediaDirectory, err)
 		}
 	} else {
+		// path is not even well-formed:
 		logme.Warnf("invalid directory path %q, error was: %v\n", mediaDirectory, err)
 	}
 
