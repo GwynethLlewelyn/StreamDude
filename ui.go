@@ -99,6 +99,7 @@ func uiStream(c *gin.Context) {
 
 	err = godirwalk.Walk(mediaDirectory,
 		&godirwalk.Options{
+			FollowSymbolicLinks: true,
 			Callback: func(osPathname string, de *godirwalk.Dirent) error {
 				// skip directories/symlinks to directories (if not in recursive mode)
 				isDir, dirErr := de.IsDirOrSymlinkToDir();
