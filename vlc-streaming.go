@@ -115,7 +115,7 @@ func apiStreamPath(c *gin.Context) {
 func streamMedia(myPlayList []fs.FileInfo) error {
 	// Make sure we got *something*!
 	if len(myPlayList) == 0 {
-		return fmt.Errorf("streamMedia() got an empty playlist for media dir: %q\n", mediaDirectory)
+		return fmt.Errorf("streamMedia() got an empty playlist for media dir: %q", mediaDirectory)
 	}
 
 	// Initialize libVLC. Additional command line arguments can be passed in
