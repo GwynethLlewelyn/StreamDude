@@ -106,6 +106,7 @@ func uiStream(c *gin.Context) {
 				if isDir {
 					if dirErr == nil {
 						// return godirwalk.SkipThis
+						logme.Debugf("entering %q...\n", de.Name())
 						return nil
 					}
 					logme.Errorf("error when trying to access directory/symlink %q: %s",
@@ -113,9 +114,15 @@ func uiStream(c *gin.Context) {
 						return nil
 				}
 				// check if this IS a valid audio file or not.
-				// a more stricter check should deal with
-				if !strings.Contains(validExtensions, strings.ToLower(filepath.Ext(de.Name()))) {
-					// skip this file if not
+				// First, take a look at the extension. We need to make sure we actually get anything,
+				// since an empty extension "" will match *any* file, which is NOT what we want here!
+				fileExtension := strings.ToLower(filepath.Ext(de.Name()))
+
+				// TODO(gwyneth): beyond checking the file extension, we should check for its MIME type
+
+				if fileExtension != "" && !strings.Contains(validExtensions, fileExtension) {
+					// skip this file if not a valid audio file
+					logme.Debugf("Skipping %q (extension found: %q)...\n", de.Name(), fileExtension)
 					return godirwalk.SkipThis
 				}
 				// ok, get the fileinfo for this entry
