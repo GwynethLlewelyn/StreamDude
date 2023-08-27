@@ -5,25 +5,18 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"io/fs"
+//	"io/fs"
 	"net/http"
 
 	//	"os"
-	"path/filepath"
+//	"path/filepath"
 	//	"strings"
 
 	vlc "github.com/adrg/libvlc-go/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-//	"github.com/karrick/godirwalk"
+// "github.com/karrick/godirwalk"
 )
-
-const validExtensions = ".mp3.m4a.aac"	// valid audio extensions, add more if needed.
-
-// A series of valid playlist entries (only audio files).
-// This is allegedly constructed once, by the ui/stream handler, and reused here.
-// TODO(gwyneth): Or maybe put inside a Gin context?
-var playlist []fs.FileInfo
 
 // Gin handler to stream from a directory.
 // Everything is pretty much embedded in the code for now, except the path, which is on mediaDirectory.
@@ -46,12 +39,16 @@ func apiStreamPath(c *gin.Context) {
 	logme.Infof("streaming from playlist: %v\n", playlist)
 	logme.Debugf("Bound command: %+v\n", command)
 
-	// Error related to streaming via VLC, but we don't want to call that if the playlist is empty.
+	// Error related to streaming via VLC.
 	var resultError error
+	// We don't want to stream media if the playlist is empty.
 	if len(playlist) == 0 {
 		resultError = fmt.Errorf("empty playlist passed")
 	} else {
-		resultError = streamMedia(playlist)
+		// run this in a separate goroutine, since it might take a LONG time to play!
+		go func() {
+			resultError = streamMedia(playlist)
+		}()
 	}
 
 	checkErrReply(c, http.StatusNotFound, "could not stream from " + mediaDirectory, resultError)
@@ -86,13 +83,13 @@ func apiStreamPath(c *gin.Context) {
 		case binding.MIMEJSON:
 			c.JSON(http.StatusOK, gin.H{
 				"status": "ok",
-				"message": "successfully streamed from " + mediaDirectory,
+				"message": "successfully streaming from " + mediaDirectory,
 			})
 		case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
 			c.HTML(http.StatusOK, "streamdir.tpl", environment(c, gin.H{
 				"Title"			 : template.HTML("<i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i><i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i>&nbsp;Stream from media directory<br><code>" + mediaDirectory + "</code>"),
-				"description"	 : "Successfully streamed from " + mediaDirectory,
-				"Text"			 : "👍🆗✅ Successfully streamed from " + mediaDirectory,
+				"description"	 : "Successfully streaming from " + mediaDirectory,
+				"Text"			 : "👍🆗✅ Successfully streaming (in the background) from " + mediaDirectory,
 				"hasDirList"	 : true,
 				"setBanner"		 : true,
 				"mediaDirectory" : mediaDirectory,
@@ -101,18 +98,18 @@ func apiStreamPath(c *gin.Context) {
 		case binding.MIMEXML, "application/soap+xml", binding.MIMEXML2:
 			c.XML(http.StatusOK, gin.H{
 					"status": "ok",
-					"message": "successfully streamed from " + mediaDirectory,
+					"message": "successfully streaming from " + mediaDirectory,
 			})
 		case binding.MIMEPlain:
 			fallthrough
 		default:
 			// minimalistic output, good for embedding
-			c.String(http.StatusOK, "successfully streamed from " + mediaDirectory)
+			c.String(http.StatusOK, "successfully streaming from " + mediaDirectory)
 	}
 }
 
-// Internal function to stream media via VLC, based on a playlost we got earlier.
-func streamMedia(myPlayList []fs.FileInfo) error {
+// Internal function to stream media via VLC, based on a playlist we got earlier.
+func streamMedia(myPlayList []PlayListItem) error {
 	// Make sure we got *something*!
 	if len(myPlayList) == 0 {
 		return fmt.Errorf("streamMedia() got an empty playlist for media dir: %q", mediaDirectory)
@@ -143,15 +140,20 @@ func streamMedia(myPlayList []fs.FileInfo) error {
 	defer list.Release()
 
 	// Now loop through the whole playlist and count the entries.
-	var i int
+	var total, checked int
 	for _, entry := range myPlayList {
-		err = list.AddMediaFromPath(filepath.Join(mediaDirectory, entry.Name()))
+		// add only if this entry is in fact checked to play.
+		if entry.Checked() {
+			err = list.AddMediaFromPath(entry.Name())
+			checked++
+		}
+//		err = list.AddMediaFromPath(filepath.Join(mediaDirectory, entry.Name()))
 		if err != nil {
 			return err
 		}
-		i++
+		total++
 	}
-	logme.Infof("%d entries from playlist added to streamer\n", i)
+	logme.Infof("%d/%d checked entries from playlist added to streamer\n", total, checked)
 /*
 	err = list.AddMediaFromURL("http://stream-uk1.radioparadise.com/mp3-32")
 	if err != nil {
@@ -180,6 +182,7 @@ func streamMedia(myPlayList []fs.FileInfo) error {
 	quit := make(chan struct{})
 	eventCallback := func(event vlc.Event, userData interface{}) {
 		close(quit)
+		// TODO(gwyneth): *theoretically* we should return *something* to the browser. But how? (gwyneth 20230827)
 	}
 
 	eventID, err := manager.Attach(vlc.MediaListPlayerPlayed, eventCallback, nil)
@@ -193,6 +196,7 @@ func streamMedia(myPlayList []fs.FileInfo) error {
 		return err
 	}
 
+	// should we have a timeout here? (gwyneth 20230827)
 	<-quit
 
 	return nil

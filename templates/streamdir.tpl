@@ -47,8 +47,9 @@
 															</div>
 														</div> <!-- /d-flex flex-row -->
 														{{- if not $file.IsDir -}}
+														<!-- note: all checkboxes checked & disabled for now -->
 														<div class="check">
-															<input type="checkbox" name="checkbox-{{- $file.Name -}}">
+															<input type="checkbox" id="checkbox-{{- $file.Name -}}" name="{{- $file.Name -}}" disabled="disabled" checked>
 														</div>
 														{{- end -}}
 													</li>

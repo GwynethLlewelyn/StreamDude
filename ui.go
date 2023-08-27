@@ -88,6 +88,8 @@ func uiCredits(c *gin.Context) {
 		"Text"			: "One day, we will credit here everybody."		}))
 }
 
+
+
 // Displays a page with the contents of the media directory. In the future, checkboxes & changing dir will work, too.
 func uiStream(c *gin.Context) {
 	var err error	// for scope issues on calls with multiple return params
@@ -96,6 +98,7 @@ func uiStream(c *gin.Context) {
 	logme.Infoln("streaming from directory:", mediaDirectory)
 
 	playlist = nil	// clean the last playlist and start from scratch.
+	var lastCoverPath string	//
 
 	err = godirwalk.Walk(mediaDirectory,
 		&godirwalk.Options{
@@ -126,13 +129,28 @@ func uiStream(c *gin.Context) {
 					return godirwalk.SkipThis
 				}
 				// ok, get the fileinfo for this entry
-				st, err := os.Stat(osPathname)
+				_, err := os.Stat(osPathname)
 				if err != nil {
 					logme.Errorf("stat() failed on file %s: %s\n", osPathname, err)
 					return err
 				}
+
+				// Check for album cover. To
+				if lastCoverPath == "" {
+					// does a file named "Folder.jpg" exist in the same folder? If so, use it!
+					// Note: "Folder.jpg" seems to be some sort of convention; we might get anything which is an image instead...(gwyneth 20230827)
+					potentialCoverPath := filepath.Join(filepath.Dir(osPathname), "Folder.jpg")
+
+					if _, err := os.Stat(potentialCoverPath); err != nil {
+						lastCoverPath = potentialCoverPath
+					}
+				}
+
 				// add another file to the list...
-				playlist = append(playlist, st)
+				// note: we will make all checkboxes true for now, to simplify testing; later,
+				// they will be correctly set.
+				temp := NewPlayListItem(*de, osPathname, lastCoverPath, true)
+				playlist = append(playlist, *temp)
 				// all clear, let's move on!
 				return nil
 			},	// ends Callback
@@ -140,7 +158,13 @@ func uiStream(c *gin.Context) {
 				logme.Errorf("on file %s: %s\n", osPathname, err)
 				return godirwalk.SkipNode
 			},
-			Unsorted: false, // (optional) set true for faster yet non-deterministic enumeration (see godoc)
+			// Called at the end of every directory, after all the children have been invoked.
+			PostChildrenCallback: func(osPathName string, de *godirwalk.Dirent) error {
+				logme.Debugf("at directory: %s; emptying album cover path for this directory\n", osPathName)
+				lastCoverPath = ""
+				return nil
+			},
+			// Unsorted: false, // (optional) set true for faster yet non-deterministic enumeration (see godoc)
 	})	// end options for dirwalk
 	if err != nil {
 		logme.Errorf("sorry, walking through %q got error: %s\n", mediaDirectory, err)
@@ -156,7 +180,7 @@ func uiStream(c *gin.Context) {
 			}
 		}
 		logme.Debugf("%d entries found; Go reports %d elements \n", i, len(playlist))
-		logme.Debugf("Currently, error is %v and responseContent is %q\n", err, responseContent)
+//		logme.Debugf("Currently, error is %v and responseContent is %q\n", err, responseContent)
 	}
 	if err != nil {
 		switch responseContent {
