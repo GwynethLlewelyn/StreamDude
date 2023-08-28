@@ -98,7 +98,7 @@ func uiStream(c *gin.Context) {
 	logme.Infoln("streaming from directory:", mediaDirectory)
 
 	playlist = nil	// clean the last playlist and start from scratch.
-	var lastCoverPath string	//
+	var lastCoverPath string	// 'cache' of the civer art for this directory (= album),
 
 	err = godirwalk.Walk(mediaDirectory,
 		&godirwalk.Options{
@@ -128,14 +128,14 @@ func uiStream(c *gin.Context) {
 					logme.Debugf("Skipping %q (extension found: %q)...\n", de.Name(), fileExtension)
 					return godirwalk.SkipThis
 				}
-				// ok, get the fileinfo for this entry
-				_, err := os.Stat(osPathname)
+				// ok, get the fileinfo for this entry:
+				fiThis, err := os.Stat(osPathname)
 				if err != nil {
 					logme.Errorf("stat() failed on file %s: %s\n", osPathname, err)
 					return err
 				}
 
-				// Check for album cover. To
+				// Check for album cover. To save resources, we sort of cache it.
 				if lastCoverPath == "" {
 					// does a file named "Folder.jpg" exist in the same folder? If so, use it!
 					// Note: "Folder.jpg" seems to be some sort of convention; we might get anything which is an image instead...(gwyneth 20230827)
@@ -144,12 +144,13 @@ func uiStream(c *gin.Context) {
 					if _, err := os.Stat(potentialCoverPath); err != nil {
 						lastCoverPath = potentialCoverPath
 					}
+					logme.Debugf("Potential cover found: %q; last cover path is set to %q\n", potentialCoverPath, lastCoverPath)
 				}
 
 				// add another file to the list...
 				// note: we will make all checkboxes true for now, to simplify testing; later,
 				// they will be correctly set.
-				temp := NewPlayListItem(*de, osPathname, lastCoverPath, true)
+				temp := NewPlayListItem(*de, osPathname, lastCoverPath, fiThis.ModTime(), true)
 				playlist = append(playlist, *temp)
 				// all clear, let's move on!
 				return nil
@@ -171,6 +172,7 @@ func uiStream(c *gin.Context) {
 	}
 	// no need to tranverse everything if we're not in debug mode!
 	if (debug) {
+		logme.Debugln("Walkthrough finished; let's see what we've got:")
 		// index.
 		var i = 0
 		if len(playlist) != 0 {

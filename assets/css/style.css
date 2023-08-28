@@ -36,3 +36,9 @@
   color: var(--white);
   background-color: var(--gray-dark);
 }
+
+/* to print am album cver, if it's there */
+.album-cover {
+  width: 40px;
+  height: 40px;
+}

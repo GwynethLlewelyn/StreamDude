@@ -31,22 +31,26 @@
 													{{- range $file := .playlist -}}
 													<li class="list-group-item d-flex justify-content-between align-content-center">
 														<div class="d-flex flex-row">
-															{{- if $file.IsDir -}}
-															<i class="bi bi-folder-fill" style="font-size: 40px; color: var(--yellow);" aria-hidden="true"></i>
+															{{- if $file.de.IsDir -}}
+															<i class="bi bi-folder-fill album-cover" style="font-size: 40px; color: var(--yellow);" aria-hidden="true"></i>
 															{{- else -}}
-															<i class="bi bi-music-note-beamed" style="font-size: 40px; color: var(--purple);" aria-hidden="true"></i>
+															{{- if $file.Cover -}}
+															<img class="album-cover" src="{{- $file.Cover -}}" alt="Album cover">
+															{{- else -}}
+															<i class="bi bi-music-note-beamed album-cover" style="font-size: 40px; color: var(--purple);" aria-hidden="true"></i>
+															{{- end -}}
 															{{- end -}}
 															<div class="ml-2 filename-{{- $file.Name -}}">
 																<h6 class="mb-0">{{- $file.Name -}}</h6>
 																<div class="about">
 																	<span>
-																		<integer>{{- $file.Size -}}</integer> bytes
+																		<integer>{{- $file.de.Size -}}</integer> bytes
 																	</span>
-																	<span><time datetime="{{- formatAsDate $file.ModTime -}}">{{- formatAsDate $file.ModTime -}}</time></span>
+																	<span><time datetime="{{- formatAsDate $file.ModTime -}}">{{- formatAsDate $file.de.ModTime -}}</time></span>
 																</div>
 															</div>
 														</div> <!-- /d-flex flex-row -->
-														{{- if not $file.IsDir -}}
+														{{- if not $file.de.IsDir -}}
 														<!-- note: all checkboxes checked & disabled for now -->
 														<div class="check">
 															<input type="checkbox" id="checkbox-{{- $file.Name -}}" name="{{- $file.Name -}}" disabled="disabled" checked>
