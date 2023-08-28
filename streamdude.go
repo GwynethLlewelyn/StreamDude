@@ -110,9 +110,9 @@ func main() {
 	flag.StringVarP(&frontEnd,		'f', "frontend", 		"nginx", 		"type of frontend/reverse proxy")
 	flag.StringVarP(&externalPort,	'P', "externalport",	":80",			"external port if using a reverse proxy")
 	flag.StringVarP(&externalHost,	'x', "externalhost",	hostname,		"external hostname if using a reverse proxy")
-	flag.StringVarP(&templatePath,	't', "templatepath",	"./templates",	"where templates are held")
-	flag.StringVarP(&pathToStaticFiles, 's', "staticpath",	".",		"where static assets are stored")
-	flag.StringVarP(&mediaDirectory, 'g', "mediapath",		"/tmp",			"absolute path where media files can be found")
+	flag.StringVarP(&templatePath,	't', "templatepath",	"./templates",	"where the Gin HTML templates are held")
+	flag.StringVarP(&pathToStaticFiles, 's', "staticpath",	".",			"where static assets are stored")
+	flag.StringVarP(&mediaDirectory, 'g', "mediapath",		"./media",		"relative or absolute path where media files can be found for playlist streaming")
 	flag.StringVarP(&urlPathPrefix,	'u', "urlprefix",		"",				"URL path prefix")
 	flag.StringVarP(&lslSignaturePIN, 'l',	"lslpin",		"0000",			"LSL signature PIN")
 	flag.BoolVarP(&debug,			'd', "debug",			false, 			"set debug level (omit for normal logs)")
@@ -209,7 +209,7 @@ func main() {
 	// Validate absolute path to media files. /tmp is perfectly acceptable and valid.
 	if err := validate.Var(mediaDirectory, "dir"); err == nil {
 		// no errors, so directory exists.
-		logme.Infof("valid media directory found at %q (default should be /tmp which is ok)\n", mediaDirectory)
+		logme.Infof("valid media directory found at %q (default should be `.` which is ok)\n", mediaDirectory)
 	} else {
 		// path is not even well-formed:
 		logme.Warnf("invalid directory path %q, error was: %v\n", mediaDirectory, err)
@@ -236,8 +236,16 @@ func main() {
 
 	router.LoadHTMLGlob(htmlGlobFilePath)
 
-	// Some useful static dirs & files
+	// Some useful static dirs & files.
+	// Web-related assets mostly for the backoffice (e.g. CSS, JavaScript, some icons & logos...).
 	router.Static(path.Join(urlPathPrefix, "/assets"), filepath.Join(pathToStaticFiles, "/assets"))
+
+	// Media library, used for playlist streaming.
+	var md = mediaDirectory
+	if !path.IsAbs(mediaDirectory) {
+		md = filepath.Join(pathToStaticFiles, mediaDirectory)
+	}
+	router.Static(path.Join(urlPathPrefix, "/media"), md)
 
 	router.StaticFile(path.Join(urlPathPrefix, "/favicon.ico"), filepath.Join(pathToStaticFiles, "/assets/favicons/favicon.ico"))
 	router.StaticFile(path.Join(urlPathPrefix, "/browserconfig.xml"), filepath.Join(pathToStaticFiles, "/assets/favicons/browserconfig.xml"))
