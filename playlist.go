@@ -56,7 +56,7 @@ func (p PlayListItem) String() string {
 
 // Album cover image file.
 func (p PlayListItem) Cover() string {
-	return p.fullPath
+	return p.cover
 }
 
 // File size in bytes, as returned by the underlying OS.
