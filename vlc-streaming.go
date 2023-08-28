@@ -87,7 +87,7 @@ func apiStreamPath(c *gin.Context) {
 			})
 		case binding.MIMEHTML, binding.MIMEPOSTForm, binding.MIMEMultipartPOSTForm:
 			c.HTML(http.StatusOK, "streamdir.tpl", environment(c, gin.H{
-				"Title"			 : template.HTML("<i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i><i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i>&nbsp;Stream from media directory<br><code>" + mediaDirectory + "</code>"),
+				"Title"			 : skipescape("<i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i><i class=\"bi bi-music-note-beamed\" aria-hidden=\"true\"></i>&nbsp;Stream from media directory<br><code>" + mediaDirectory + "</code>"),
 				"description"	 : "Successfully streaming from " + mediaDirectory,
 				"Text"			 : "👍🆗✅ Successfully streaming (in the background) from " + mediaDirectory,
 				"hasDirList"	 : true,
