@@ -139,6 +139,8 @@ func main() {
 	router.SetFuncMap(template.FuncMap{
 		"bitTest": bitTest,
 		"formatAsDate": formatAsDate,
+		"pathEscape": pathEscape,
+		"baseName": baseName,
 	})
 
 	// Configure logrus.

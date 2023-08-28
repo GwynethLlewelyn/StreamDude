@@ -40,8 +40,8 @@
 															<i class="bi bi-music-note-beamed album-cover" style="font-size: 40px; color: var(--purple);" aria-hidden="true"></i>
 															{{- end -}}
 															{{- end -}}
-															<div class="ml-2 filename-{{- $file.Name -}}">
-																<h6 class="mb-0">{{- $file.Name -}}</h6>
+															<div class="ml-2 filename-{{- pathEscape $file.Name -}}">
+																<h6 class="mb-0">{{- baseName $file.Name -}}</h6>
 																<div class="about">
 																	<span>
 																		<integer>{{- $file.Size -}}</integer> bytes
@@ -53,7 +53,7 @@
 														{{- if not $file.IsDir -}}
 														<!-- note: all checkboxes checked & disabled for now -->
 														<div class="check">
-															<input type="checkbox" id="checkbox-{{- $file.Name -}}" name="{{- $file.Name -}}" disabled="disabled" checked>
+															<input type="checkbox" id="checkbox-{{- pathEscape $file.Name -}}" name="{{- pathEscape $file.Name -}}" disabled="disabled" checked>
 														</div>
 														{{- end -}}
 													</li>
