@@ -16,6 +16,7 @@ import (
 	"html/template"
 	"math"
 	"net/http"
+	"net/url"
 	"os/user"
 	"path/filepath"
 	"runtime"
@@ -261,6 +262,16 @@ func formatAsDate(t time.Time) string {
 func formatAsYear(t time.Time) string {
 	year, _, _ := t.Date()
 	return fmt.Sprintf("%d", year)
+}
+
+// pathEscape is a thin wrapper around url.PathEscape, for use in templates.
+func pathEscape(str string) string {
+	return url.PathEscape(str)
+}
+
+// Returns just the name + extension of a file's full path, for templates.
+func baseName(str string) string {
+	return filepath.Base(str)
 }
 
 // Allows passing strings that should not be escaped, such as _comments_.

@@ -51,6 +51,7 @@ Currently, the only streaming server supported is [lal (Live And Live)](https://
 6. `/usr/bin/curl --header "Content-Type: application/json" --header "Accept: application/json" --request POST   --data '{ "objectPIN": "0000" }' http://127.0.0.1:3554/api/auth` — should give you an authentication token, e.g. `ZmFrZXRva2Vu`
 7. `/usr/bin/curl --header "Content-Type: application/json" --header "Accept: application/json" --request POST   --data '{ "token": "ZmFrZXRva2Vu", "filename": "/path/to/video.mp4"  }' http://127.0.0.1:3554/api/play` — should launch ffmpeg and send `video.mp4` to be streamed
 8. For streaming a whole playlist, you will need to have the ALSA utils installed — currently, streaming a playlist requires the [VLC libraries](https://www.videolan.org/vlc/) as well as the `alsa-utils` package (on Linux and FreeBSD).
+9. For security issues, you should only expose the `/media` directory for playlist streaming purposes; you _can_ place a symbolic link in there, pointing to your media library, but be aware of the issues when doing that.
 
 **Note:** `objectPIN` and `token` are not really, really being enforced — there is no database/KV store backend yet, but as soon as there is one, I've put the validation code in place, so you should fill in those fields.
 
@@ -68,7 +69,7 @@ The home page, properly speaking, may become an instance of [MusicFolderPlayer](
 
 1. You're running Unix-like environment (WSL2 will possibly work, too);
 2. `nginx` is pointing to `http(s)://my.streaming.server` under `/var/www/my.streaming.server`;
-3. **StreamDude** is installed under `/StreamDude` (i.e. `/templates` and `/assets` are there)
+3. **StreamDude** is installed under `/StreamDude` (i.e. `/templates`, `/assets` and even `/media` are there);
 4. It runs as a service under `localhost:3445` (default)
 
 Then you will need something like this:

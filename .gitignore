@@ -46,6 +46,7 @@ StreamDude
 
 # Other things that should not go to Git
 *.service
+media/*
 
 # ---> Go
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
