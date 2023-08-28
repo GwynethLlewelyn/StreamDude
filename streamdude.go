@@ -242,7 +242,7 @@ func main() {
 
 	// Media library, used for playlist streaming.
 	var md = mediaDirectory
-	if !path.IsAbs(mediaDirectory) {
+	if !filepath.IsAbs(mediaDirectory) {
 		md = filepath.Join(pathToStaticFiles, mediaDirectory)
 	}
 	router.Static(path.Join(urlPathPrefix, "/media"), md)
