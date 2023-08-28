@@ -31,7 +31,7 @@
 													{{- range $file := .playlist -}}
 													<li class="list-group-item d-flex justify-content-between align-content-center">
 														<div class="d-flex flex-row">
-															{{- if $file.de.IsDir -}}
+															{{- if $file.IsDir -}}
 															<i class="bi bi-folder-fill album-cover" style="font-size: 40px; color: var(--yellow);" aria-hidden="true"></i>
 															{{- else -}}
 															{{- if $file.Cover -}}
@@ -44,13 +44,13 @@
 																<h6 class="mb-0">{{- $file.Name -}}</h6>
 																<div class="about">
 																	<span>
-																		<integer>{{- $file.de.Size -}}</integer> bytes
+																		<integer>{{- $file.Size -}}</integer> bytes
 																	</span>
-																	<span><time datetime="{{- formatAsDate $file.ModTime -}}">{{- formatAsDate $file.de.ModTime -}}</time></span>
+																	<span><time datetime="{{- formatAsDate $file.ModTime -}}">{{- formatAsDate $file.ModTime -}}</time></span>
 																</div>
 															</div>
 														</div> <!-- /d-flex flex-row -->
-														{{- if not $file.de.IsDir -}}
+														{{- if not $file.IsDir -}}
 														<!-- note: all checkboxes checked & disabled for now -->
 														<div class="check">
 															<input type="checkbox" id="checkbox-{{- $file.Name -}}" name="{{- $file.Name -}}" disabled="disabled" checked>

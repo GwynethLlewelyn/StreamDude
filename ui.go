@@ -150,7 +150,7 @@ func uiStream(c *gin.Context) {
 				// add another file to the list...
 				// note: we will make all checkboxes true for now, to simplify testing; later,
 				// they will be correctly set.
-				temp := NewPlayListItem(*de, osPathname, lastCoverPath, fiThis.ModTime(), true)
+				temp := NewPlayListItem(*de, osPathname, lastCoverPath, fiThis.ModTime(), fiThis.Size(), true)
 				playlist = append(playlist, *temp)
 				// all clear, let's move on!
 				return nil

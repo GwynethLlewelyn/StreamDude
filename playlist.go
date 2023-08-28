@@ -20,20 +20,22 @@ const validExtensions = ".mp3.m4a.aac"	// valid audio extensions, add more if ne
 type PlayListItem struct {
 	de godirwalk.Dirent	// directory entry data retrieved from godirwalk.
 
-	fullPath string	`validate:"filepath"`			// full path for the directory where this file is.
-	cover string	`validate:"filepath,omitempty"`	// path to image for this file.
-	checked bool		// eventually this will add the file to the playlist.
-	modTime time.Time	`validate:"datetime"`
+	fullPath string		`validate:"filepath"`			// full path for the directory where this file is.
+	cover string		`validate:"filepath,omitempty"`	// path to image for this file.
+	checked bool		// file checkbox enabled; eventually this will add the file to the playlist.
+	modTime time.Time	`validate:"datetime"`			// last modified date (at least on Unix-like systems).
+	size int64			// filesize in bytes, as reported by the system.
 }
 
 // Given a godirwalk.Dirent, tries to assembly a valid playlist item.
-func NewPlayListItem(dirEntry godirwalk.Dirent, path string, coverPath string, lastModTime time.Time, checkForStreaming bool) (*PlayListItem) {
+func NewPlayListItem(dirEntry godirwalk.Dirent, path string, coverPath string, lastModTime time.Time, fileSize int64, checkedForStreaming bool) (*PlayListItem) {
 	return &PlayListItem{
 		de:			dirEntry,
 		fullPath:	path,
 		cover:		coverPath,
 		modTime:	lastModTime,
-		checked:	checkForStreaming,
+		size:		fileSize,
+		checked:	checkedForStreaming,
 	}
 }
 
@@ -55,6 +57,16 @@ func (p PlayListItem) String() string {
 // Album cover image file.
 func (p PlayListItem) Cover() string {
 	return p.fullPath
+}
+
+// File size in bytes, as returned by the underlying OS.
+func (p PlayListItem) Size() int64 {
+	return p.size
+}
+
+// Last modified date (at least on Unix-like systems)
+func (p PlayListItem) ModTime() time.Time {
+	return p.modTime
 }
 
 // IsDir returns true if and only if the Dirent represents a file system
