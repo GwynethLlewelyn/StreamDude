@@ -22,9 +22,9 @@ type PlayListItem struct {
 
 	fullPath string		`validate:"filepath"`			// full path for the directory where this file is.
 	cover string		`validate:"filepath,omitempty"`	// path to image for this file.
-	checked bool		// file checkbox enabled; eventually this will add the file to the playlist.
 	modTime time.Time	`validate:"datetime"`			// last modified date (at least on Unix-like systems).
 	size int64			// filesize in bytes, as reported by the system.
+	checked bool		// file checkbox enabled; eventually this will add the file to the playlist.
 }
 
 // Given a godirwalk.Dirent, tries to assembly a valid playlist item.
@@ -110,11 +110,12 @@ func (p PlayListItem) ModeType() os.FileMode {
 
 // reset releases memory held by most of the struct (except the Dirent).
 func (p *PlayListItem) reset() {
-	// p.de.reset()	// no way to free memory from the Dirent!.
+	// p.de.reset()	// no way to free memory from the Dirent!
 	p.fullPath = ""
 	p.cover = ""
-	p.checked = false
 	p.modTime = time.Now()
+	p.size = 0
+	p.checked = false
 }
 
 

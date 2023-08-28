@@ -87,8 +87,6 @@ func uiCredits(c *gin.Context) {
 		"Text"			: "One day, we will credit here everybody."		}))
 }
 
-
-
 // Displays a page with the contents of the media directory. In the future, checkboxes & changing dir will work, too.
 func uiStream(c *gin.Context) {
 	var err error	// for scope issues on calls with multiple return params
@@ -140,7 +138,7 @@ func uiStream(c *gin.Context) {
 					// Note: "Folder.jpg" seems to be some sort of convention; we might get anything which is an image instead...(gwyneth 20230827)
 					potentialCoverPath := filepath.Join(filepath.Dir(osPathname), "Folder.jpg")
 
-					if _, err := os.Stat(potentialCoverPath); err != nil {
+					if _, err := os.Stat(potentialCoverPath); err == nil {
 						lastCoverPath = potentialCoverPath
 					}
 					logme.Debugf("Potential cover found: %q; last cover path is set to %q\n", potentialCoverPath, lastCoverPath)
