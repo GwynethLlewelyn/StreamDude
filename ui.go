@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+//	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -95,62 +96,70 @@ func uiStream(c *gin.Context) {
 	logme.Infoln("streaming from directory:", mediaDirectory)
 
 	playlist = nil	// clean the last playlist and start from scratch.
-	var lastCoverPath string	// 'cache' of the civer art for this directory (= album),
+	var lastCoverPath string	// 'cache' of the cover art for this directory (= album),
 
 	err = godirwalk.Walk(mediaDirectory,
 		&godirwalk.Options{
 			FollowSymbolicLinks: true,
 			Callback: func(osPathname string, de *godirwalk.Dirent) error {
-				// skip directories/symlinks to directories (if not in recursive mode)
+				// go one level deeper
 				isDir, dirErr := de.IsDirOrSymlinkToDir();
 				if isDir {
 					if dirErr == nil {
-						// return godirwalk.SkipThis
-						logme.Debugf("entering %q...\n", de.Name())
+						logme.Debugf("entering %q (base name: %q)...\n", osPathname, de.Name())
+						// Check for a `Folder.jpg` file
+						coverFile := filepath.Join(osPathname, "Folder.jpg")
+						if potentialCover, err := os.Stat(coverFile); err == nil {
+							logme.Debugf("stat() found an album cover file for %q named %q\n", osPathname, potentialCover.Name())
+							lastCoverPath = filepath.Join(urlPathPrefix, coverFile)
+						} else {
+							logme.Debugf("`Folder.jpg` not found on album at %q; no cover set\n", osPathname)
+						}
 						return nil
 					}
-					logme.Errorf("error when trying to access directory/symlink %q: %s",
+					logme.Errorf("error while trying to access directory/symlink %q: %s",
 						osPathname, dirErr)
-						return nil
+						return nil 	// or should we return godirwalk.SkipThis?
 				}
-				// check if this IS a valid audio file or not.
+
+				// FileInfo for the file currently being considered.
+				// We need it here because of scope issues. (gwyneth 20230828)
+				// var fiThis fs.FileInfo	// not needed any longer, actually, due to code refactoring.
+
+				// Check if this is a valid audio file, a possible album cover, or none of those.
 				// First, take a look at the extension. We need to make sure we actually get anything,
 				// since an empty extension "" will match *any* file, which is NOT what we want here!
-				fileExtension := strings.ToLower(filepath.Ext(de.Name()))
+				fileExtension := strings.ToLower(filepath.Ext(osPathname))
 
-				// TODO(gwyneth): beyond checking the file extension, we should check for its MIME type
-
-				if fileExtension != "" && !strings.Contains(validExtensions, fileExtension) {
-					// skip this file if not a valid audio file
-					logme.Debugf("Skipping %q (extension found: %q)...\n", de.Name(), fileExtension)
+				// TODO(gwyneth): beyond checking the file extension, we should check for its MIME type!
+				if fileExtension != "" {
+					if strings.Contains(validExtensions, fileExtension) {
+						// Ok, this is a valid audio file, so get the fileinfo for this entry:
+						fiThis, err := os.Stat(osPathname)
+						if err != nil {
+							logme.Errorf("stat() failed on file %s: %s\n", osPathname, err)
+							return err
+						}
+						// Add another file to the list...
+						// Note: we will make all checkboxes true for now, to simplify testing; later,
+						// they will be correctly set.
+						temp := NewPlayListItem(*de, filepath.Join(urlPathPrefix, osPathname), lastCoverPath, fiThis.ModTime(), fiThis.Size(), true)
+						playlist = append(playlist, *temp)
+						// All clear, let's move on!
+						return nil
+					} else if strings.Contains(validCoverExtensions, fileExtension) {
+						// this is a potential album cover image; we save it and skip to the next.
+						// Note: multiple files are possible, the (alphabetically) last one will be used.
+						logme.Debugf("potential cover found: %q (unused)\n", lastCoverPath)
+						// Ok, no more processing on this file, we can skip the entry.
+						return godirwalk.SkipThis
+					}
+					// skip this file if not a valid audio file, nor a cover image:
+					logme.Debugf("skipping %q (extension found: %q)...\n", de.Name(), fileExtension)
+					return godirwalk.SkipThis
+				} else {
 					return godirwalk.SkipThis
 				}
-				// ok, get the fileinfo for this entry:
-				fiThis, err := os.Stat(osPathname)
-				if err != nil {
-					logme.Errorf("stat() failed on file %s: %s\n", osPathname, err)
-					return err
-				}
-
-				// Check for album cover. To save resources, we sort of cache it.
-				if lastCoverPath == "" {
-					// does a file named "Folder.jpg" exist in the same folder? If so, use it!
-					// Note: "Folder.jpg" seems to be some sort of convention; we might get anything which is an image instead...(gwyneth 20230827)
-					potentialCoverPath := filepath.Join(filepath.Dir(osPathname), "Folder.jpg")
-
-					if _, err := os.Stat(potentialCoverPath); err == nil {
-						lastCoverPath = potentialCoverPath
-					}
-					logme.Debugf("Potential cover found: %q; last cover path is set to %q\n", potentialCoverPath, lastCoverPath)
-				}
-
-				// add another file to the list...
-				// note: we will make all checkboxes true for now, to simplify testing; later,
-				// they will be correctly set.
-				temp := NewPlayListItem(*de, osPathname, lastCoverPath, fiThis.ModTime(), fiThis.Size(), true)
-				playlist = append(playlist, *temp)
-				// all clear, let's move on!
-				return nil
 			},	// ends Callback
 			ErrorCallback: func(osPathname string, err error) godirwalk.ErrorAction {
 				logme.Errorf("on file %s: %s\n", osPathname, err)
@@ -174,7 +183,7 @@ func uiStream(c *gin.Context) {
 		var i = 0
 		if len(playlist) != 0 {
 			for _, dirEntry := range playlist {
-				logme.Debugf("%d: %+v\n", i, dirEntry)
+				logme.Debugf("%d: %#v\n", i, dirEntry)
 				i++
 			}
 		}

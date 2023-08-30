@@ -113,7 +113,7 @@ func main() {
 	flag.StringVarP(&templatePath,	't', "templatepath",	"./templates",	"where the Gin HTML templates are held")
 	flag.StringVarP(&pathToStaticFiles, 's', "staticpath",	".",			"where static assets are stored")
 	flag.StringVarP(&mediaDirectory, 'g', "mediapath",		"./media",		"relative or absolute path where media files can be found for playlist streaming")
-	flag.StringVarP(&urlPathPrefix,	'u', "urlprefix",		"",				"URL path prefix")
+	flag.StringVarP(&urlPathPrefix,	'u', "urlprefix",		"/",			"URL path prefix (with trailing slash)")
 	flag.StringVarP(&lslSignaturePIN, 'l',	"lslpin",		"0000",			"LSL signature PIN")
 	flag.BoolVarP(&debug,			'd', "debug",			false, 			"set debug level (omit for normal logs)")
 	flag.StringVarP(&streamerURL,	'r', "streamer",		"rtsp://127.0.0.1:554/",	"streamer URL")
@@ -164,6 +164,7 @@ func main() {
 
 	var isTerm = true	// are we logging to a tty?
 
+	logme.Debugf("URLPathPrefix set to: %q\n", urlPathPrefix)
 	logme.Debugf("terminal type: %q activeSystemd: %t NO_COLOR: %q CLICOLOR_FORCE: %q\n",
 		os.Getenv("TERM"), activeSystemd, os.Getenv("NO_COLOR"), os.Getenv("CLICOLOR_FORCE"))
 
@@ -240,18 +241,18 @@ func main() {
 
 	// Some useful static dirs & files.
 	// Web-related assets mostly for the backoffice (e.g. CSS, JavaScript, some icons & logos...).
-	router.Static(path.Join(urlPathPrefix, "/assets"), filepath.Join(pathToStaticFiles, "/assets"))
+	router.Static(path.Join(urlPathPrefix, "assets"), filepath.Join(pathToStaticFiles, "/assets"))
 
 	// Media library, used for playlist streaming.
 	var md = mediaDirectory
 	if !filepath.IsAbs(mediaDirectory) {
 		md = filepath.Join(pathToStaticFiles, mediaDirectory)
 	}
-	router.Static(path.Join(urlPathPrefix, "/media"), md)
+	router.Static(path.Join(urlPathPrefix, "media"), md)
 
-	router.StaticFile(path.Join(urlPathPrefix, "/favicon.ico"), filepath.Join(pathToStaticFiles, "/assets/favicons/favicon.ico"))
-	router.StaticFile(path.Join(urlPathPrefix, "/browserconfig.xml"), filepath.Join(pathToStaticFiles, "/assets/favicons/browserconfig.xml"))
-	router.StaticFile(path.Join(urlPathPrefix, "/site.webmanifest"), filepath.Join(pathToStaticFiles, "/assets/favicons/site.webmanifest"))
+	router.StaticFile(path.Join(urlPathPrefix, "favicon.ico"), filepath.Join(pathToStaticFiles, "/assets/favicons/favicon.ico"))
+	router.StaticFile(path.Join(urlPathPrefix, "browserconfig.xml"), filepath.Join(pathToStaticFiles, "/assets/favicons/browserconfig.xml"))
+	router.StaticFile(path.Join(urlPathPrefix, "site.webmanifest"), filepath.Join(pathToStaticFiles, "/assets/favicons/site.webmanifest"))
 
 	// Make the router handle these exceptions with better HTTP error codes
 	router.HandleMethodNotAllowed = true
@@ -261,17 +262,17 @@ func main() {
 	// Generic funcionality
 
 	// Ping handler (who knows, it might be useful in some contexts... such as Let's Encrypt certificates
-	router.Any(path.Join(urlPathPrefix, "/ping"),			uiPing)
+	router.Any(path.Join(urlPathPrefix, "ping"),			uiPing)
 
 	// Main website, as far as we can call it a "website".
-	router.GET(path.Join(urlPathPrefix, "/home"), 			homepage)
-	router.GET(urlPathPrefix + string(os.PathSeparator),	homepage)
+	router.GET(path.Join(urlPathPrefix, "home"), 			homepage)
+	router.GET(path.Join(urlPathPrefix, string(os.PathSeparator)),	homepage)
 
 	// Shows the credits page.
-	router.GET(path.Join(urlPathPrefix, "/credits"),		uiCredits)
+	router.GET(path.Join(urlPathPrefix, "credits"),		uiCredits)
 
 	// Lower-leval API for calling things (mostly non-tty low-level calls)
-	apiRoutes := router.Group(path.Join(urlPathPrefix, "/api"))
+	apiRoutes := router.Group(path.Join(urlPathPrefix, "api"))
 	{		// base page for complex scripts.
 		apiRoutes.POST("/play",	apiStreamFile)
 		apiRoutes.POST("/auth",	apiSimpleAuthGenKey)
@@ -280,7 +281,7 @@ func main() {
 	}
 
 	// Specific routes just for the user interface
-	uiRoutes := router.Group(path.Join(urlPathPrefix, "/ui"))
+	uiRoutes := router.Group(path.Join(urlPathPrefix, "ui"))
 	{
 		uiRoutes.GET("/auth", func(c *gin.Context) {
 			// not much to pass really

@@ -14,14 +14,15 @@ import (
 	"github.com/karrick/godirwalk"
 )
 
-const validExtensions = ".mp3.m4a.aac"	// valid audio extensions, add more if needed.
+const validExtensions		= ".mp3.m4a.aac"				// valid audio extensions, add more if needed.
+const validCoverExtensions	= ".jpg.jpeg.png.gif.heic.webp"	// valid image extensions for album cover, add more if needed.
 
 // Represents a playlist item, including image, checkbox status etc.
 type PlayListItem struct {
 	de godirwalk.Dirent	// directory entry data retrieved from godirwalk.
 
 	fullPath string		`validate:"filepath"`			// full path for the directory where this file is.
-	cover string		`validate:"filepath,omitempty"`	// path to image for this file.
+	cover string		`validate:"filepath,omitempty"`	// path to album cover for this file.
 	modTime time.Time	`validate:"datetime"`			// last modified date (at least on Unix-like systems).
 	size int64			// filesize in bytes, as reported by the system.
 	checked bool		// file checkbox enabled; eventually this will add the file to the playlist.
