@@ -47,26 +47,26 @@
 		-->
 		<!-- Trying to use bootstrap bundled with popper, because otherwise, this must come *first* (gwyneth 202230802)
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.5/umd/popper.min.js" integrity="sha512-8cU710tp3iH9RniUh6fq5zJsGnjLzOWLWdZqBMLtqaoZUA6AWIE34lwMB3ipUNiTBP5jEZKY95SfbNnQ8cCKvA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>-->
-		<link rel="stylesheet" href="{{- .URLPathPrefix -}}/assets/css/bootstrap4-dialog.css" />
-		<script src="{{- .URLPathPrefix -}}/assets/js/bootstrap4-dialog.js"></script>
+		<link rel="stylesheet" href="{{- .URLPathPrefix -}}assets/css/bootstrap4-dialog.css" />
+		<script src="{{- .URLPathPrefix -}}assets/js/bootstrap4-dialog.js"></script>
 		<!-- Call agGrid -->
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ag-grid/Docs-27.1.0-20220316/styles/ag-grid.min.css" integrity="sha512-nCEk9jlAm2EovHp0fAuD2ZdW7PuHXa4/2U7RWOae0p8bnFat2DJ77IjTaoY+Nh/Ith8P13iDVOWAvkAEgD6IQQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ag-grid/Docs-27.1.0-20220316/styles/ag-theme-alpine-dark.min.css" integrity="sha512-JP97wY1K1lnrZnyUOg+BviTgUGkfmX7nvfTA9HhsGnkSIGwTp/KmsKiGbZEz3N3JiUZFKlXw3233N0FGGbP3PQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/ag-grid/Docs-27.1.0-20220316/ag-grid-community.min.noStyle.js" integrity="sha512-RMhS9dNrbhSpMQyj+Mi/kJqdks8IwkVDI2AUsK7HIFKY+Nb90Ajp96pyvDSY9nPcB2qOEXUw043glP0ObxFlpg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 		<!-- we're using an external function to geneate UUIDs in JavaScript: -->
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuidv4.min.js" integrity="sha512-BCMqEPl2dokU3T/EFba7jrfL4FxgY6ryUh4rRC9feZw4yWUslZ3Uf/lPZ5/5UlEjn4prlQTRfIPYQkDrLCZJXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-		<script src="{{- .URLPathPrefix -}}/assets/js/random-people.js?cache-buster={{- .cacheBuster -}}"></script>
+		<script src="{{- .URLPathPrefix -}}assets/js/random-people.js?cache-buster={{- .cacheBuster -}}"></script>
 		<!-- these are our own JS support functions for agGrid -->
-		<script src="{{- .URLPathPrefix -}}/assets/js/{{- .agGridJS -}}?cache-buster={{- .cacheBuster -}}"></script>
+		<script src="{{- .URLPathPrefix -}}assets/js/{{- .agGridJS -}}?cache-buster={{- .cacheBuster -}}"></script>
 		{{- end -}}
 		<!-- Nord theme comes after the above, so that it might overwrite things in case of need -->
-		<link rel="stylesheet" href="{{- .URLPathPrefix -}}/assets/css/nordbootstrap.css?cache-buster={{- .cacheBuster -}}" />
+		<link rel="stylesheet" href="{{- .URLPathPrefix -}}assets/css/nordbootstrap.css?cache-buster={{- .cacheBuster -}}" />
 		{{- if .hasDirList -}}
 		<!-- CSS for dirlist -->
-		<link rel="stylesheet" href="{{- .URLPathPrefix -}}/assets/css/dirlist.css?cache-buster={{- .cacheBuster -}}" />
+		<link rel="stylesheet" href="{{- .URLPathPrefix -}}assets/css/dirlist.css?cache-buster={{- .cacheBuster -}}" />
 		{{- end -}}
 		<!-- our own CSS at the end, so that everything from CodeMirror can be overridden (gwyneth 20220327) -->
-		<link rel="stylesheet" href="{{- .URLPathPrefix -}}/assets/css/style.css?cache-buster={{- .cacheBuster -}}" />
+		<link rel="stylesheet" href="{{- .URLPathPrefix -}}assets/css/style.css?cache-buster={{- .cacheBuster -}}" />
 	</head>
 	<body id="page-top">
 		<!-- this allows us to get URLPathPrefix from JS, if needed later -->
@@ -76,7 +76,7 @@
 			Used to have 'fixed-top' but this seems to put everything too transparent for my taste... -->
 			<nav class="navbar navbar-expand-md navbar-light bg-secondary text-primary fixed-top border-bottom">
 				<a class="navbar-brand" href="{{- .URLPathPrefix -}}">
-					<img src="{{- .URLPathPrefix -}}/assets/logos/streamdude-logo-128x128.png" class="svg-logo bg-white rounded shadow-lg" alt="StreamDude Logo - Home" title="StreamDude Logo - Home">
+					<img src="{{- .URLPathPrefix -}}assets/logos/streamdude-logo-128x128.png" class="svg-logo bg-white rounded shadow-lg" alt="StreamDude Logo - Home" title="StreamDude Logo - Home">
 				</a>
 				<!-- Toggler/collapsible Button -->
 				<button class="navbar-toggler navbar-light" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
@@ -85,35 +85,35 @@
 				<div class="collapse navbar-collapse" id="collapsibleNavbar">
 					<ul class="navbar-nav">
 						<li class="nav-item">
-							<a class="nav-link" href="{{- .URLPathPrefix -}}/ping"><i class="bi bi-broadcast-pin" aria-hidden="true"></i>&nbsp;Ping</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}ping"><i class="bi bi-broadcast-pin" aria-hidden="true"></i>&nbsp;Ping</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/auth"><i class="bi bi-person-lock" aria-hidden="true"></i>&nbsp;Authentication</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}ui/auth"><i class="bi bi-person-lock" aria-hidden="true"></i>&nbsp;Authentication</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/play"><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Play single file</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}ui/play"><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Play single file</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" href="{{- .URLPathPrefix -}}/ui/stream"><i class="bi bi-music-note-beamed" aria-hidden="true"></i><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Stream from media dir</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}ui/stream"><i class="bi bi-music-note-beamed" aria-hidden="true"></i><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;Stream from media dir</a>
 						</li>
 						<!--
 						<li class="nav-item dropdown">
 							<a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#"><i class="bi bi-hdd-rack"></i>&nbsp;Database</a>
 							<div class="dropdown-menu bg-primary border shadow-lg">
-								<a class="dropdown-item" href="{{- .URLPathPrefix -}}/admin/database/agents">Agents</a>
-								<a class="dropdown-item" href="{{- .URLPathPrefix -}}/admin/database/inventory">Inventory</a>
-								<a class="dropdown-item" href="{{- .URLPathPrefix -}}/admin/database/objects">Objects</a>
+								<a class="dropdown-item" href="{{- .URLPathPrefix -}}admin/database/agents">Agents</a>
+								<a class="dropdown-item" href="{{- .URLPathPrefix -}}admin/database/inventory">Inventory</a>
+								<a class="dropdown-item" href="{{- .URLPathPrefix -}}admin/database/objects">Objects</a>
 							</div>
 						</li>
 						<li class="nav-item dropdown">
 							<a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#"><i class="bi bi-gear"></i>&nbsp;Debug</a>
 							<div class="dropdown-menu bg-primary border shadow-lg">
-								<a class="dropdown-item" href="{{- .URLPathPrefix -}}/admin/restbot-sessions">List RESTbot Sessions (XML)</a>
-								<a class="dropdown-item" href="{{- .URLPathPrefix -}}/admin/exit-bots">Exit all RESTbots</a>
+								<a class="dropdown-item" href="{{- .URLPathPrefix -}}admin/restbot-sessions">List RESTbot Sessions (XML)</a>
+								<a class="dropdown-item" href="{{- .URLPathPrefix -}}admin/exit-bots">Exit all RESTbots</a>
 							</li>
 						</li>-->
 						<li class="nav-item">
-							<a class="nav-link" href="{{- .URLPathPrefix -}}/credits"><i class="bi bi-info-circle" aria-hidden="true">&nbsp;</i>Credits</a>
+							<a class="nav-link" href="{{- .URLPathPrefix -}}credits"><i class="bi bi-info-circle" aria-hidden="true">&nbsp;</i>Credits</a>
 						</li>
 					</ul>
 				</div>

@@ -25,7 +25,7 @@
 							<div class="col-lg-5 d-none d-lg-block bg-register-image"></div>
 							<div class="col-lg-7">
 								<div class="p-5">
-									<form role="form" class="user" action="{{- .URLPathPrefix -}}/api/stream" method="POST">
+									<form role="form" class="user" action="{{- .URLPathPrefix -}}api/stream" method="POST">
 											<div class="container d-flex justify-content-center">
 												<ul class="list-group mt-5 text-white">
 													{{- range $file := .playlist -}}

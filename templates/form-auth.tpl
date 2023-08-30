@@ -10,7 +10,7 @@
 										<div class="text-center">
 											<h1 class="h4 text-gray-900 mb-4"><i class="bi bi-person-lock" aria-hidden="true"></i>&nbsp;{{- if .Title -}}{{- .Title -}}{{- else -}}Authentication{{- end -}}</h1>
 										</div>
-										<form role="form" class="user" action="{{- .URLPathPrefix -}}/api/auth" method="POST">
+										<form role="form" class="user" action="{{- .URLPathPrefix -}}api/auth" method="POST">
 											<div class="form-group input-group">
 												<label for="objectPIN" class="col-form-label">4-digit Object PIN:</label>
 												<input type="number" max=9999 min=0 maxlength=4 minlength=4 size=4 class="form-control form-control-user" id="objectPIN" name="objectPIN" placeholder="0000" autofocus required>

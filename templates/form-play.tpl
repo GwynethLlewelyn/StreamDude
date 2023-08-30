@@ -10,7 +10,7 @@
 										<div class="text-center">
 											<h1 class="h4 text-gray-900 mb-4"><i class="bi bi-music-note-beamed" aria-hidden="true"></i>&nbsp;{{- if .Title -}}{{- .Title -}}{{- else -}}Play{{- end -}}</h1>
 										</div>
-										<form role="form" class="user" action="{{- .URLPathPrefix -}}/api/play" method="POST">
+										<form role="form" class="user" action="{{- .URLPathPrefix -}}api/play" method="POST">
 											<div class="form-group input-group">
 												<label for="token" class="col-form-label">Token received during authentication:</label>
 												<input type="text" class="form-control form-control-user" id="token" name="token" placeholder="Enter your token here" size=32 autofocus required>
