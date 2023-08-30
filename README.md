@@ -139,6 +139,13 @@ Coloured `journald` logs are yet to be implemented, but at least you can get the
 -   [Gin](https://gin-gonic.com/), of course.
 -   Thanks as well to the team that provided [access to the VLC libraries using Go](https://github.com/adrg/libvlc-go), or else I couldn't stream from a disk directory stored on the server :-P
 
+Music sample files for testing, under `./media/Kevin MacLeod/Rock harder`, are licensed under the following license:
+
+> "Big Rock", "Cool Hard Facts", "El Magicia", "Gearhead", "Neolith", "Sax Rock and Roll" and "What You Want"  
+> by Kevin MacLeod (incompetech.com)  
+> Licensed under Creative Commons: By Attribution 3.0  
+> https://creativecommons.org/licenses/by/3.0/  
+
 ## Release notes
 
 See [CHANGELOG.md](CHANGELOG.md).
