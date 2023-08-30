@@ -90,12 +90,14 @@ func uiCredits(c *gin.Context) {
 
 // Displays a page with the contents of the media directory. In the future, checkboxes & changing dir will work, too.
 func uiStream(c *gin.Context) {
+	// For type PlayListItem, see playlist.go
+
 	var err error	// for scope issues on calls with multiple return params
 	responseContent := getContentType(c)
 
 	logme.Infoln("streaming from directory:", mediaDirectory)
 
-	playlist = nil	// clean the last playlist and start from scratch.
+	playlist = nil	// clear the last playlist and start from scratch.
 	var lastCoverPath string	// 'cache' of the cover art for this directory (= album),
 
 	err = godirwalk.Walk(mediaDirectory,
@@ -158,6 +160,8 @@ func uiStream(c *gin.Context) {
 					logme.Debugf("skipping %q (extension found: %q)...\n", de.Name(), fileExtension)
 					return godirwalk.SkipThis
 				} else {
+					// Rare case where a file hasn't got an extension, so we cannot figure out what its type is.
+					logme.Debugf("empty file extension for %q, skipping...\n", de.Name())
 					return godirwalk.SkipThis
 				}
 			},	// ends Callback
@@ -167,7 +171,7 @@ func uiStream(c *gin.Context) {
 			},
 			// Called at the end of every directory, after all the children have been invoked.
 			PostChildrenCallback: func(osPathName string, de *godirwalk.Dirent) error {
-				logme.Debugf("at directory: %s; emptying album cover path for this directory\n", osPathName)
+				logme.Debugf("finished with directory %q: emptying album cover path (%s)\n", osPathName, lastCoverPath)
 				lastCoverPath = ""
 				return nil
 			},

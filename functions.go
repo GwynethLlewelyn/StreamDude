@@ -47,7 +47,7 @@ func getContentType(c *gin.Context) string {
 	contentType := contextCopy.ContentType()
 	responseContent := contentType	// may be empty, but it's our fallack scenario
 
-	logme.Debugf("%s %q: Content-Type is %v; full range of accepted headers is: %+v (total entries: %d) - response, so far, will use %q\n",  contextCopy.Request.Method, contextCopy.FullPath(), contentType, contextCopy.GetHeader("Accept"), len(contextCopy.GetHeader("Accept")), responseContent)
+	logme.Debugf("[%s] %s %q: Content-Type is \"%v\"; full range of accepted headers is: \"%+v\" (total entries: %d) - response, so far, will use %q\n", contextCopy.Request.RequestURI, contextCopy.Request.Method, contextCopy.FullPath(), contentType, contextCopy.GetHeader("Accept"), len(contextCopy.GetHeader("Accept")), responseContent)
 
 	// if we extracted the first Accept header successfully, then use it:
 	if len(acceptHeader) != 0 {

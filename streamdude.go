@@ -24,11 +24,10 @@ import (
 	"syscall"
 
 	"github.com/coreos/go-systemd/v22/daemon"
-
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 //	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
-
 	//	"github.com/google/martian/log"
 	flag "github.com/karrick/golf" // flag replacement library
 	"github.com/mattn/go-isatty"
@@ -164,7 +163,7 @@ func main() {
 
 	var isTerm = true	// are we logging to a tty?
 
-	logme.Debugf("URLPathPrefix set to: %q\n", urlPathPrefix)
+	logme.Debugf("URLPathPrefix set to »»»%s«««\n", urlPathPrefix)
 	logme.Debugf("terminal type: %q activeSystemd: %t NO_COLOR: %q CLICOLOR_FORCE: %q\n",
 		os.Getenv("TERM"), activeSystemd, os.Getenv("NO_COLOR"), os.Getenv("CLICOLOR_FORCE"))
 
@@ -241,14 +240,11 @@ func main() {
 
 	// Some useful static dirs & files.
 	// Web-related assets mostly for the backoffice (e.g. CSS, JavaScript, some icons & logos...).
-	router.Static(path.Join(urlPathPrefix, "assets"), filepath.Join(pathToStaticFiles, "/assets"))
+	// We need to use the slohty less efficient static middleware, because https://stackoverflow.com/a/68613803/1035977 (gwyneth 20230830)
 
-	// Media library, used for playlist streaming.
-	var md = mediaDirectory
-	if !filepath.IsAbs(mediaDirectory) {
-		md = filepath.Join(pathToStaticFiles, mediaDirectory)
-	}
-	router.Static(path.Join(urlPathPrefix, "media"), md)
+	// router.Static(path.Join(urlPathPrefix, "assets"), filepath.Join(pathToStaticFiles, "/assets"))
+	router.Use(static.Serve(path.Join(urlPathPrefix, "assets"), static.LocalFile(filepath.Join(pathToStaticFiles, "/assets"), false)))
+	router.Use(static.Serve(path.Join(urlPathPrefix, "media"), static.LocalFile(filepath.Join(pathToStaticFiles, "/media"), false)))
 
 	router.StaticFile(path.Join(urlPathPrefix, "favicon.ico"), filepath.Join(pathToStaticFiles, "/assets/favicons/favicon.ico"))
 	router.StaticFile(path.Join(urlPathPrefix, "browserconfig.xml"), filepath.Join(pathToStaticFiles, "/assets/favicons/browserconfig.xml"))
@@ -298,7 +294,8 @@ func main() {
 
 	// Catch all other routes and send back an error
 	router.NoRoute(func(c *gin.Context) {
-		errorMessage := "Command " + c.Request.URL.Path + " not found."
+		errorMessage := fmt.Sprintf("No route found for command %q [%s]", c.Request.URL.Path, c.FullPath())
+
 		checkErrReply(c, http.StatusNotFound, errorMessage, fmt.Errorf("(routing error)"))
 	})
 
