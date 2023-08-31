@@ -295,7 +295,6 @@ func main() {
 	// Catch all other routes and send back an error
 	router.NoRoute(func(c *gin.Context) {
 		errorMessage := fmt.Sprintf("No route found for command %q [%s]", c.Request.URL.Path, c.FullPath())
-
 		checkErrReply(c, http.StatusNotFound, errorMessage, fmt.Errorf("(routing error)"))
 	})
 
