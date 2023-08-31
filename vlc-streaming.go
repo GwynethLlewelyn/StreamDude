@@ -35,22 +35,30 @@ func apiStreamPath(c *gin.Context) {
 		checkErrReply(c, http.StatusInternalServerError, "stream", err)
 		return
 	}
-	logme.Infof("streaming from playlist: %v\n", playlist)
-	logme.Debugf("Bound command: %+v\n", command)
+	// Note: we're assuming that `playlist` is global, but it should actually be passed in context;
+	// it's just that I don't exactly know *how* to do that yet! (gwyneth 20230831)
+	logme.Infof("[apiStreamPath] — %d songs to stream\n", len(playlist))
+	logme.Debugf("[apiStreamPath] - streaming from playlist: %v\n", playlist)
+	logme.Debugf("[apiStreamPath] - bound command: %+v\n", command)
 
 	// Error related to streaming via VLC.
 	var resultError error
 	// We don't want to stream media if the playlist is empty.
 	if len(playlist) == 0 {
-		resultError = fmt.Errorf("empty playlist passed")
+		resultError = fmt.Errorf("[apiStreamPath] - empty playlist passed")
 	} else {
 		// run this in a separate goroutine, since it might take a LONG time to play!
 		go func() {
+			logme.Debugln("[apiStreamPath] — inside goroutine, now calling streamMedia()")
 			resultError = streamMedia(playlist)
+			if resultError != nil {
+				logme.Errorf("[apiStreamPath] — inside goroutine, streamMedia() returned with error: %v\n", resultError)
+			}
 		}()
+		// boom?
 	}
 
-	checkErrReply(c, http.StatusNotFound, "could not stream from " + mediaDirectory, resultError)
+	checkErrReply(c, http.StatusNotFound, "[apiStreamPath] - could not stream from " + mediaDirectory, resultError)
 	if resultError != nil {
 		switch responseContent {
 			case binding.MIMEJSON:
@@ -113,18 +121,19 @@ func streamMedia(myPlayList []PlayListItem) error {
 	if len(myPlayList) == 0 {
 		return fmt.Errorf("streamMedia() got an empty playlist for media dir: %q", mediaDirectory)
 	}
+	logme.Infof("streamMedia() has a playlist with %d entries\n", len(myPlayList))
 
 	// Initialize libVLC. Additional command line arguments can be passed in
 	// to libVLC by specifying them in the Init function.
 	if err := vlc.Init("--no-video", "--quiet"); err != nil {
-		return err
+		return fmt.Errorf("streamMedia Init(): %v", err)
 	}
 	defer vlc.Release()
 
 	// Create a new list player.
 	player, err := vlc.NewListPlayer()
 	if err != nil {
-		return err
+		return fmt.Errorf("streamMedia NewListPlayer(): %v", err)
 	}
 	defer func() {
 		player.Stop()
@@ -134,7 +143,7 @@ func streamMedia(myPlayList []PlayListItem) error {
 	// Create a new media list.
 	list, err := vlc.NewMediaList()
 	if err != nil {
-		return err
+		return fmt.Errorf("streamMedia NewMediaList(): %v", err)
 	}
 	defer list.Release()
 
@@ -148,7 +157,7 @@ func streamMedia(myPlayList []PlayListItem) error {
 		}
 //		err = list.AddMediaFromPath(filepath.Join(mediaDirectory, entry.Name()))
 		if err != nil {
-			return err
+			return fmt.Errorf("streamMedia AddMediaFromPath(), item %d: %v", checked, err)
 		}
 		total++
 	}
@@ -161,7 +170,7 @@ func streamMedia(myPlayList []PlayListItem) error {
  */
 	// Set player media list.
 	if err = player.SetMediaList(list); err != nil {
-		return err
+		return fmt.Errorf("streamMedia SetMediaList(): %v", err)
 	}
 
 /* 	// Media files can be added to the list after the list has been added
@@ -174,7 +183,7 @@ func streamMedia(myPlayList []PlayListItem) error {
 	// Retrieve player event manager.
 	manager, err := player.EventManager()
 	if err != nil {
-		return err
+		return fmt.Errorf("streamMedia EventManager(): %v", err)
 	}
 
 	// Register the media end reached event with the event manager.
@@ -186,13 +195,13 @@ func streamMedia(myPlayList []PlayListItem) error {
 
 	eventID, err := manager.Attach(vlc.MediaListPlayerPlayed, eventCallback, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("streamMedia Attach(): %v", err)
 	}
 	defer manager.Detach(eventID)
 
 	// Start playing the media list.
 	if err = player.Play(); err != nil {
-		return err
+		return fmt.Errorf("streamMedia Play(): %v", err)
 	}
 
 	// should we have a timeout here? (gwyneth 20230827)
