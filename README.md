@@ -53,9 +53,18 @@ Currently, the only streaming server supported is [lal (Live And Live)](https://
 8. For streaming a whole playlist, you will need to have the ALSA utils installed — currently, streaming a playlist requires the [VLC libraries](https://www.videolan.org/vlc/) as well as the `alsa-utils` package (on Linux and FreeBSD).
 9. For security issues, you should only expose the `/media` directory for playlist streaming purposes; you _can_ place a symbolic link in there, pointing to your media library, but be aware of the issues when doing that.
 
-**Note:** `objectPIN` and `token` are not really, really being enforced — there is no database/KV store backend yet, but as soon as there is one, I've put the validation code in place, so you should fill in those fields.
+**Note 1:** `objectPIN` and `token` are not really, really being enforced — there is no database/KV store backend yet, but as soon as there is one, I've put the validation code in place, so you should fill in those fields.
 
-Also note that there are further fields for Second Life®/OpenSimulator, all of which are being ignored right now.
+**Note 2:** There are further fields for Second Life®/OpenSimulator, all of which are being ignored right now.
+
+**Note 3:** Compiling against the VLC libraries requires their proper
+installation; take a look at https://github.com/adrg/libvlc-go/ for the
+proper installation procedures. For macOS users who use Homebrew instead of
+MacPorts, install VLC as a cask, then adjust the paths found on the
+instructions mentioned.
+
+Then use `CGO_CFLAGS="-I/Applications/VLC.app/Contents/MacOS/include" CGO_LDFLAGS="-L/Applications/VLC.app/Contents/MacOS/lib" go
+build` to get the `cgo` subsystem to properly recognise these directories.
 
 ## Backoffice
 
