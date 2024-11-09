@@ -1,6 +1,8 @@
 module github.com/GwynethLlewelyn/StreamDude
 
-go 1.22
+go 1.23.2
+
+toolchain go1.23.3
 
 require (
 	github.com/adrg/libvlc-go/v3 v3.1.6
@@ -10,7 +12,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/karrick/godirwalk v1.17.0
-	github.com/karrick/golf v1.4.0
+	github.com/karrick/golf v1.5.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/sirupsen/logrus v1.9.3
 )
